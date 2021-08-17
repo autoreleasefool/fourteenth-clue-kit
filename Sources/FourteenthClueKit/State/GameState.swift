@@ -102,8 +102,7 @@ public struct GameState {
 
 	/// Update a player's properties
 	/// - Parameter player: the player to update
-	public func with(player: Player) -> GameState {
-		guard let index = players.firstIndex(where: { $0.id == player.id }) else { return self }
+	public func with(player: Player, atIndex index: Int) -> GameState {
 		var updatedPlayers = players
 		updatedPlayers[index] = player
 		return .init(players: updatedPlayers, secretInformants: secretInformants, actions: actions, cards: cards)
