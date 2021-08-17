@@ -10,7 +10,7 @@ public enum InquiryEvaluatorError: Error {
 }
 
 public protocol InquiryEvaluatorDelegate: AnyObject {
-	func evaluator(_ evaluator: InquiryEvaluator, didFindOptimalInquiries: [Inquiry])
+	func evaluator(_ evaluator: InquiryEvaluator, didFindOptimalInquiries inquiries: [Inquiry])
 	func evaluator(_ evaluator: InquiryEvaluator, didEncounterError error: InquiryEvaluatorError)
 }
 
