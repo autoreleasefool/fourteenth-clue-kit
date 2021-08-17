@@ -35,44 +35,44 @@ public struct Player: Identifiable, Hashable {
 
 	/// Replace the name of the player
 	/// - Parameter name: the new name
-	func with(name: String) -> Player {
+	public func with(name: String) -> Player {
 		.init(name: name, hidden: hidden, mystery: mystery)
 	}
 
 	/// Replace the left hidden card of the player
 	/// - Parameter name: the new left card
-	func withHiddenCard(onLeft left: Card? = nil) -> Player {
+	public func withHiddenCard(onLeft left: Card? = nil) -> Player {
 		.init(name: name, hidden: hidden.withCard(onLeft: left), mystery: mystery)
 	}
 
 	/// Replace the right hidden card of the player
 	/// - Parameter name: the new right card
-	func withHiddenCard(onRight right: Card? = nil) -> Player {
+	public func withHiddenCard(onRight right: Card? = nil) -> Player {
 		.init(name: name, hidden: hidden.withCard(onRight: right), mystery: mystery)
 	}
 
 	/// Replace the person in the player's mystery
 	/// - Parameter name: the new person
-	func withMysteryPerson(_ toCard: Card? = nil) -> Player {
+	public func withMysteryPerson(_ toCard: Card? = nil) -> Player {
 		.init(name: name, hidden: hidden, mystery: mystery.with(person: toCard))
 	}
 
 	/// Replace the location in the player's mystery
 	/// - Parameter name: the new location
-	func withMysteryLocation(_ toCard: Card? = nil) -> Player {
+	public func withMysteryLocation(_ toCard: Card? = nil) -> Player {
 		.init(name: name, hidden: hidden, mystery: mystery.with(location: toCard))
 	}
 
 	/// Replace the weapon in the player's mystery
 	/// - Parameter name: the new weapon
-	func withMysteryWeapon(_ toCard: Card? = nil) -> Player {
+	public func withMysteryWeapon(_ toCard: Card? = nil) -> Player {
 		.init(name: name, hidden: hidden, mystery: mystery.with(weapon: toCard))
 	}
 
 	// MARK: Properties
 
 	/// All of the player's cards
-	var cards: Set<Card> {
+	public var cards: Set<Card> {
 		mystery.cards.union(hidden.cards)
 	}
 

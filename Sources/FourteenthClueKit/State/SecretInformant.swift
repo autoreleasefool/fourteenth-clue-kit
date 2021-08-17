@@ -22,7 +22,7 @@ public struct SecretInformant: Hashable {
 
 	/// Replace the card in the informant
 	/// - Parameter card: new card
-	func with(card: Card?) -> SecretInformant {
+	public func with(card: Card?) -> SecretInformant {
 		.init(name: name, card: card)
 	}
 

@@ -192,7 +192,7 @@ extension Card {
 	public static let peopleCards: Set<Card> = { menCards.union(womenCards) }()
 
 	/// `true` if this card is a person
-	var isPerson: Bool {
+	public var isPerson: Bool {
 		Card.peopleCards.contains(self)
 	}
 
@@ -206,7 +206,7 @@ extension Card {
 	public static let locationsCards: Set<Card> = { outdoorsCards.union(indoorsCards) }()
 
 	/// `true` if this card is a location
-	var isLocation: Bool {
+	public var isLocation: Bool {
 		Card.locationsCards.contains(self)
 	}
 
@@ -220,7 +220,7 @@ extension Card {
 	public static let weaponsCards: Set<Card> = { rangedCards.union(meleeCards) }()
 
 	/// `true` if this card is a weapon
-	var isWeapon: Bool {
+	public var isWeapon: Bool {
 		Card.weaponsCards.contains(self)
 	}
 
@@ -369,52 +369,52 @@ extension Set where Element == Card {
 	// MARK: Basic categories
 
 	/// People in the set
-	var people: Set<Card> { self.intersection(Card.peopleCards) }
+	public var people: Set<Card> { self.intersection(Card.peopleCards) }
 	/// Locations in the set
-	var locations: Set<Card> { self.intersection(Card.locationsCards) }
+	public var locations: Set<Card> { self.intersection(Card.locationsCards) }
 	/// Weapons in the set
-	var weapons: Set<Card> { self.intersection(Card.weaponsCards) }
+	public var weapons: Set<Card> { self.intersection(Card.weaponsCards) }
 
 	// MARK: Categories
 
 	/// Men in the set
-	var men: Set<Card> { self.intersection(Card.menCards) }
+	public var men: Set<Card> { self.intersection(Card.menCards) }
 	/// Women in the set
-	var women: Set<Card> { self.intersection(Card.womenCards) }
+	public var women: Set<Card> { self.intersection(Card.womenCards) }
 	/// Indoors locations in the set
-	var indoors: Set<Card> { self.intersection(Card.indoorsCards) }
+	public var indoors: Set<Card> { self.intersection(Card.indoorsCards) }
 	/// Outdoors cards in the set
-	var outdoors: Set<Card> { self.intersection(Card.outdoorsCards) }
+	public var outdoors: Set<Card> { self.intersection(Card.outdoorsCards) }
 	/// Ranged cards in the set
-	var ranged: Set<Card> { self.intersection(Card.rangedCards) }
+	public var ranged: Set<Card> { self.intersection(Card.rangedCards) }
 	/// Melee cards in the set
-	var melee: Set<Card> { self.intersection(Card.meleeCards) }
+	public var melee: Set<Card> { self.intersection(Card.meleeCards) }
 
 	// MARK: Colors
 
 	/// Purple cards in the set
-	var purpleCards: Set<Card> { self.intersection(Card.purpleCards) }
+	public var purpleCards: Set<Card> { self.intersection(Card.purpleCards) }
 	/// Pink cards in the set
-	var pinkCards: Set<Card> { self.intersection(Card.pinkCards) }
+	public var pinkCards: Set<Card> { self.intersection(Card.pinkCards) }
 	/// Red cards in the set
-	var redCards: Set<Card> { self.intersection(Card.redCards) }
+	public var redCards: Set<Card> { self.intersection(Card.redCards) }
 	/// Green cards in the set
-	var greenCards: Set<Card> { self.intersection(Card.greenCards) }
+	public var greenCards: Set<Card> { self.intersection(Card.greenCards) }
 	/// Yellow cards in the set
-	var yellowCards: Set<Card> { self.intersection(Card.yellowCards) }
+	public var yellowCards: Set<Card> { self.intersection(Card.yellowCards) }
 	/// Blue cards in the set
-	var blueCards: Set<Card> { self.intersection(Card.blueCards) }
+	public var blueCards: Set<Card> { self.intersection(Card.blueCards) }
 	/// Orange cards in the set
-	var orangeCards: Set<Card> { self.intersection(Card.orangeCards) }
+	public var orangeCards: Set<Card> { self.intersection(Card.orangeCards) }
 	/// White cards in the set
-	var whiteCards: Set<Card> { self.intersection(Card.whiteCards) }
+	public var whiteCards: Set<Card> { self.intersection(Card.whiteCards) }
 	/// Brown cards in the set
-	var brownCards: Set<Card> { self.intersection(Card.brownCards) }
+	public var brownCards: Set<Card> { self.intersection(Card.brownCards) }
 	/// Gray cards in the set
-	var grayCards: Set<Card> { self.intersection(Card.grayCards) }
+	public var grayCards: Set<Card> { self.intersection(Card.grayCards) }
 
 	/// Cards matching a given filter
-	func matching(filter: Card.Filter) -> Set<Card> {
+	public func matching(filter: Card.Filter) -> Set<Card> {
 		self.intersection(Card.allCardsMatching(filter: filter))
 	}
 

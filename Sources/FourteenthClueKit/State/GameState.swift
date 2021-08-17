@@ -230,7 +230,7 @@ public struct GameState {
 	// MARK: - Cards
 
 	/// Cards which haven't been set to any player's mystery, hidden cards, or informants
-	var unallocatedCards: Set<Card> {
+	public var unallocatedCards: Set<Card> {
 		cards
 			.subtracting(players.flatMap { $0.mystery.cards })
 			.subtracting(players.flatMap { $0.hidden.cards })
@@ -238,63 +238,63 @@ public struct GameState {
 	}
 
 	/// Cards which were initially not visible at the start of the game
-	var initialUnknownCards: Set<Card> {
+	public var initialUnknownCards: Set<Card> {
 		cards
 			.subtracting(players.first!.hidden.cards)
 			.subtracting(players.dropFirst().flatMap { $0.mystery.cards })
 	}
 
 	/// All cards in the state
-	var allCards: Set<Card> {
+	public var allCards: Set<Card> {
 		cards
 	}
 
 	/// Purple cards in the state
-	var purpleCards: Set<Card> { cards.intersection(Card.purpleCards) }
+	public var purpleCards: Set<Card> { cards.intersection(Card.purpleCards) }
 	/// Pink cards in the state
-	var pinkCards: Set<Card> { cards.intersection(Card.pinkCards) }
+	public var pinkCards: Set<Card> { cards.intersection(Card.pinkCards) }
 	/// Red cards in the state
-	var redCards: Set<Card> { cards.intersection(Card.redCards) }
+	public var redCards: Set<Card> { cards.intersection(Card.redCards) }
 	/// Green cards in the state
-	var greenCards: Set<Card> { cards.intersection(Card.greenCards) }
+	public var greenCards: Set<Card> { cards.intersection(Card.greenCards) }
 	/// Yellow cards in the state
-	var yellowCards: Set<Card> { cards.intersection(Card.yellowCards) }
+	public var yellowCards: Set<Card> { cards.intersection(Card.yellowCards) }
 	/// Blue cards in the state
-	var blueCards: Set<Card> { cards.intersection(Card.blueCards) }
+	public var blueCards: Set<Card> { cards.intersection(Card.blueCards) }
 	/// Orange cards in the state
-	var orangeCards: Set<Card> { cards.intersection(Card.orangeCards) }
+	public var orangeCards: Set<Card> { cards.intersection(Card.orangeCards) }
 	/// White cards in the state
-	var whiteCards: Set<Card> { cards.intersection(Card.whiteCards) }
+	public var whiteCards: Set<Card> { cards.intersection(Card.whiteCards) }
 	/// Brown cards in the state
-	var brownCards: Set<Card> { cards.intersection(Card.brownCards) }
+	public var brownCards: Set<Card> { cards.intersection(Card.brownCards) }
 	/// Gray cards in the state
-	var grayCards: Set<Card> { cards.intersection(Card.grayCards) }
+	public var grayCards: Set<Card> { cards.intersection(Card.grayCards) }
 
 	// MARK: People
 
 	/// People cards in the state
-	var peopleCards: Set<Card> { cards.intersection(Card.peopleCards) }
+	public var peopleCards: Set<Card> { cards.intersection(Card.peopleCards) }
 	/// Men people cards in the state
-	var menCards: Set<Card> { cards.intersection(Card.menCards) }
+	public var menCards: Set<Card> { cards.intersection(Card.menCards) }
 	/// Women people cards in the state
-	var womenCards: Set<Card> { cards.intersection(Card.womenCards) }
+	public var womenCards: Set<Card> { cards.intersection(Card.womenCards) }
 
 	// MARK: Locations
 
 	/// Location cards in the state
-	var locationsCards: Set<Card> { cards.intersection(Card.locationsCards) }
+	public var locationsCards: Set<Card> { cards.intersection(Card.locationsCards) }
 	/// Outdoors location cards in the state
-	var outdoorsCards: Set<Card> { cards.intersection(Card.outdoorsCards) }
+	public var outdoorsCards: Set<Card> { cards.intersection(Card.outdoorsCards) }
 	/// Indoors location cards in the state
-	var indoorsCards: Set<Card> { cards.intersection(Card.indoorsCards) }
+	public var indoorsCards: Set<Card> { cards.intersection(Card.indoorsCards) }
 
 	// MARK: Weapons
 
 	/// Weapon cards in the state
-	var weaponsCards: Set<Card> { cards.intersection(Card.weaponsCards) }
+	public var weaponsCards: Set<Card> { cards.intersection(Card.weaponsCards) }
 	/// Ranged weapon cards in the state
-	var rangedCards: Set<Card> { cards.intersection(Card.rangedCards) }
+	public var rangedCards: Set<Card> { cards.intersection(Card.rangedCards) }
 	/// Melee weapon cards in the state
-	var meleeCards: Set<Card> { cards.intersection(Card.meleeCards) }
+	public var meleeCards: Set<Card> { cards.intersection(Card.meleeCards) }
 
 }
