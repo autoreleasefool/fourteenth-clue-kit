@@ -22,7 +22,7 @@ public class PossibleStateEliminationSolver: MysterySolver {
 	public init() {}
 
 	public func cancel() {
-		self.currentState = nil
+		currentState = nil
 		delegate?.solver(self, didEncounterError: .cancelled)
 	}
 
@@ -63,7 +63,7 @@ public class PossibleStateEliminationSolver: MysterySolver {
 	}
 
 	private func isRunning(withState state: GameState) -> Bool {
-		self.currentState?.id == state.id
+		currentState?.id == state.id
 	}
 
 	private func resolveMyAccusations(in state: GameState, _ possibleStates: inout [PossibleState]) {

@@ -345,6 +345,11 @@ extension Card {
 				return category.description
 			}
 		}
+
+		/// All cards matching the filter
+		public var cards: Set<Card> {
+			Card.allCardsMatching(filter: self)
+		}
 	}
 
 }

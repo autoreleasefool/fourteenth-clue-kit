@@ -23,4 +23,5 @@ public protocol MysterySolver {
 	func solve(state: GameState)
 	/// Indicate the work being done to solve the last `state` should be cancelled
 	func cancel()
+
 }

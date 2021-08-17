@@ -15,12 +15,12 @@ public class SolutionEliminationSolver: MysterySolver {
 	public init() {}
 
 	public func cancel() {
-		self.currentState = nil
-		self.delegate?.solver(self, didEncounterError: .cancelled)
+		currentState = nil
+		delegate?.solver(self, didEncounterError: .cancelled)
 	}
 
 	public func solve(state: GameState) {
-		self.currentState = state
+		currentState = state
 
 		var solutions = state.allPossibleSolutions()
 
@@ -31,11 +31,11 @@ public class SolutionEliminationSolver: MysterySolver {
 		resolveInquisitionsInCombination(in: state, &solutions)
 
 		guard isRunning(withState: state) else { return }
-		self.delegate?.solver(self, didReturnSolutions: solutions)
+		delegate?.solver(self, didReturnSolutions: solutions)
 	}
 
 	private func isRunning(withState state: GameState) -> Bool {
-		self.currentState?.id == state.id
+		currentState?.id == state.id
 	}
 
 	private func removeImpossibleSolutions(in state: GameState, _ solutions: inout [Solution]) {
