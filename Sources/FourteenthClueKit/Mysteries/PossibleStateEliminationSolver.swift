@@ -58,7 +58,7 @@ public class PossibleStateEliminationSolver: MysterySolver {
 		guard isRunning(withState: state) else { return }
 
 		reporter.reportStep(message: "Finished generating \(states.count) possible states.")
-		delegate?.solver(self, didReturnSolutions: solutions)
+		delegate?.solver(self, didReturnSolutions: solutions.sorted())
 		(delegate as? PossibleStateEliminationSolverDelegate)?.solver(self, didGeneratePossibleStates: states, for: state)
 	}
 

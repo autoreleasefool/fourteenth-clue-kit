@@ -68,7 +68,7 @@ public class BruteForceInquiryEvaluator: InquiryEvaluator {
 		guard isRunning(withState: baseState) else { return }
 
 		reporter.reportStep(message: "Finished evaluating \(bestInquiries.count) inquiries, with expected value of \(highestExpectedStatesRemoved)")
-		delegate?.evaluator(self, didFindOptimalInquiries: bestInquiries)
+		delegate?.evaluator(self, didFindOptimalInquiries: bestInquiries.sorted())
 	}
 
 	private func isRunning(withState state: GameState) -> Bool {

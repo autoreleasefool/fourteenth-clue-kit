@@ -333,7 +333,7 @@ extension Card {
 extension Card {
 
 	/// Category or color to filter the cards by
-	public enum Filter: Equatable, CustomStringConvertible {
+	public enum Filter: Equatable, CustomStringConvertible, Comparable {
 		case color(Card.Color)
 		case category(Card.Category)
 
@@ -343,6 +343,19 @@ extension Card {
 				return color.description
 			case .category(let category):
 				return category.description
+			}
+		}
+
+		public static func < (lhs: Filter, rhs: Filter) -> Bool {
+			switch (lhs, rhs) {
+			case (.color(let left), .color(let right)):
+				return left < right
+			case (.category(let left), .category(let right)):
+				return left < right
+			case (.color, .category):
+				return true
+			case (.category, color):
+				return false
 			}
 		}
 
