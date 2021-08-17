@@ -5,8 +5,6 @@
 //  Created by Joseph Roque on 2021-08-16.
 //
 
-import Foundation
-
 /// Represents all of the cards in the game.
 public enum Card: String, CaseIterable, Hashable {
 

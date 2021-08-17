@@ -5,8 +5,6 @@
 //  Created by Joseph Roque on 2021-08-16.
 //
 
-import Foundation
-
 /// A player in the game
 public struct Player: Identifiable, Hashable {
 

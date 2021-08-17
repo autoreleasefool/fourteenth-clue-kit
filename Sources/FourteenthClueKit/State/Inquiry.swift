@@ -5,8 +5,6 @@
 //  Created by Joseph Roque on 2021-08-16.
 //
 
-import Foundation
-
 /// Inquiry to make
 public struct Inquiry {
 

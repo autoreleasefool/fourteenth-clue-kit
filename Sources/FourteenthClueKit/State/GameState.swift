@@ -86,6 +86,7 @@ public struct GameState {
 	}
 
 	private init(players: [Player], secretInformants: [SecretInformant], actions: [AnyAction], cards: Set<Card>) {
+		assert((2...6).contains(players.count))
 		self.players = players
 		self.secretInformants = secretInformants
 		self.actions = actions

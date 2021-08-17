@@ -11,11 +11,15 @@ let package = Package(
 			targets: ["FourteenthClueKit"]
 		),
 	],
-	dependencies: [],
+	dependencies: [
+		.package(url: "https://github.com/apple/swift-algorithms", from: "0.0.1"),
+	],
 	targets: [
 		.target(
 			name: "FourteenthClueKit",
-			dependencies: []
+			dependencies: [
+				.product(name: "Algorithms", package: "swift-algorithms"),
+			]
 		),
 		.testTarget(
 			name: "FourteenthClueKitTests",

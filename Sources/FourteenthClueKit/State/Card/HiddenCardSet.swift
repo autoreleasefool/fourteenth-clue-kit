@@ -5,8 +5,6 @@
 //  Created by Joseph Roque on 2021-08-16.
 //
 
-import Foundation
-
 /// A player's hidden cards, visible only to themselves
 public struct HiddenCardSet: Hashable {
 

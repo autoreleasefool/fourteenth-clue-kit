@@ -5,8 +5,6 @@
 //  Created by Joseph Roque on 2021-08-16.
 //
 
-import Foundation
-
 /// A player's mystery they are trying to solve
 public struct MysteryCardSet: Hashable {
 
