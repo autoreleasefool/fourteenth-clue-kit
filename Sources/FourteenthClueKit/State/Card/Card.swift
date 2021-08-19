@@ -89,9 +89,9 @@ extension Card {
 				self = .location(presence)
 			} else if let `class` = Class(rawValue: rawValue) {
 				self = .weapon(`class`)
+			} else {
+				return nil
 			}
-
-			return nil
 		}
 
 		/// Gender of the person cards
@@ -346,9 +346,9 @@ extension Card {
 				self = .color(color)
 			} else if let cat = Card.Category(rawValue: rawValue) {
 				self = .category(cat)
+			} else {
+				return nil
 			}
-
-			return nil
 		}
 
 		public var description: String {
