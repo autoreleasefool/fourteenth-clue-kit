@@ -243,7 +243,7 @@ extension Card {
 extension Card {
 
 	/// Color for each of the cards
-	public enum Color: Int, CaseIterable, CustomStringConvertible, Identifiable, Comparable {
+	public enum Color: String, CaseIterable, CustomStringConvertible, Identifiable, Comparable {
 
 		case purple
 		case pink
@@ -256,37 +256,29 @@ extension Card {
 		case brown
 		case gray
 
-		public var description: String {
-			switch self {
-			case .purple:
-				return "Purple"
-			case .pink:
-				return "Pink"
-			case .red:
-				return "Red"
-			case .green:
-				return "Green"
-			case .yellow:
-				return "Yellow"
-			case .blue:
-				return "Blue"
-			case .orange:
-				return "Orange"
-			case .white:
-				return "White"
-			case .brown:
-				return "Brown"
-			case .gray:
-				return "Gray"
-			}
-		}
-
-		public var id: Int {
+		public var id: String {
 			rawValue
 		}
 
+		public var description: String {
+			rawValue.capitalized
+		}
+
 		public static func < (lhs: Color, rhs: Color) -> Bool {
-			lhs.rawValue < rhs.rawValue
+			if lhs == rhs { return false }
+			switch (lhs, rhs) {
+			case (.purple, _): return true
+			case (.pink, _): return true
+			case (.red, _): return true
+			case (.green, _): return true
+			case (.yellow, _): return true
+			case (.blue, _): return true
+			case (.orange, _): return true
+			case (.white, _): return true
+			case (.brown, _): return true
+			case (.gray, _): return true
+			case (_, _): return false
+			}
 		}
 
 	}
@@ -352,8 +344,8 @@ extension Card {
 		public init?(rawValue: String) {
 			if let color = Card.Color(rawValue: rawValue) {
 				self = .color(color)
-			} else if category = Card.Category(rawValue: rawValue) {
-				self = .category(category)
+			} else if let cat = Card.Category(rawValue: rawValue) {
+				self = .category(cat)
 			}
 
 			return nil
