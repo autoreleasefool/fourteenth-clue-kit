@@ -23,7 +23,7 @@ public struct GameState {
 
 	public init(playerCount: Int) {
 		self.init(
-			players: (0..<playerCount).map { _ in Player() },
+			players: (1...playerCount).map { Player(ordinal: $0) },
 			secretInformants: GameState.secretInformants(forPlayerCount: playerCount),
 			actions: [],
 			cards: Card.cardSet(forPlayerCount: playerCount)

@@ -19,13 +19,16 @@ public struct Player: Identifiable, Hashable {
 		name
 	}
 
-	public init() {
-		self.name = ""
-		self.hidden = HiddenCardSet(left: nil, right: nil)
-		self.mystery = MysteryCardSet(person: nil, location: nil, weapon: nil)
+	public init(ordinal: Int) {
+		self.init(
+			name: "Player-\(ordinal)",
+			hidden: HiddenCardSet(left: nil, right: nil),
+			mystery: MysteryCardSet(person: nil, location: nil, weapon: nil)
+		)
 	}
 
 	public init(name: String, hidden: HiddenCardSet, mystery: MysteryCardSet) {
+		assert(!name.contains(" "))
 		self.name = name
 		self.hidden = hidden
 		self.mystery = mystery
