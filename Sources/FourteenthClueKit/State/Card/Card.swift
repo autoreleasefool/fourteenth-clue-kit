@@ -82,6 +82,18 @@ extension Card {
 		case location(Presence)
 		case weapon(Class)
 
+		public init?(rawValue: String) {
+			if let gender = Gender(rawValue: rawValue) {
+				self = .person(gender)
+			} else if let presence = Presence(rawValue: rawValue) {
+				self = .location(presence)
+			} else if let `class` = Class(rawValue: rawValue) {
+				self = .weapon(`class`)
+			}
+
+			return nil
+		}
+
 		/// Gender of the person cards
 		public enum Gender: String, Hashable, Equatable, Identifiable {
 			case man
@@ -336,6 +348,16 @@ extension Card {
 	public enum Filter: Equatable, CustomStringConvertible, Comparable {
 		case color(Card.Color)
 		case category(Card.Category)
+
+		public init?(rawValue: String) {
+			if let color = Card.Color(rawValue: rawValue) {
+				self = .color(color)
+			} else if category = Card.Category(rawValue: rawValue) {
+				self = .category(category)
+			}
+
+			return nil
+		}
 
 		public var description: String {
 			switch self {
