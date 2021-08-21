@@ -31,7 +31,7 @@ public class SolutionEliminationSolver: MysterySolver {
 		resolveInquisitionsInCombination(in: state, &solutions)
 
 		guard isRunning(withState: state) else { return }
-		delegate?.solver(self, didReturnSolutions: solutions.sorted())
+		delegate?.solver(self, didReturnSolutions: solutions.sorted().reversed())
 	}
 
 	private func isRunning(withState state: GameState) -> Bool {
