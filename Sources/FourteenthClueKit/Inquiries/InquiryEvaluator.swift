@@ -17,6 +17,9 @@ public protocol InquiryEvaluatorDelegate: AnyObject {
 public protocol InquiryEvaluator {
 	var delegate: InquiryEvaluatorDelegate? { get set }
 
+	/// Value from 0 to 1 on how close to an inquiry the evaluator is for the last `state` passed. Nil if there's no work in progress
+	var progress: Double? { get }
+
 	/// Start finding the ideal inquiry in a given state
 	/// - Parameters
 	///   - baseState: the base state query will be asked in

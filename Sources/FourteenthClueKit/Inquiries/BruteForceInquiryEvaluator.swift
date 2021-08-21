@@ -9,7 +9,14 @@ import Algorithms
 
 public class BruteForceInquiryEvaluator: InquiryEvaluator {
 
-	private var seed: (state: GameState, possibleStates: [PossibleState])?
+	private var seed: (state: GameState, possibleStates: [PossibleState])? {
+		didSet {
+			totalInquiriesToEvaluate = 0
+			inquiriesEvaluated = 0
+		}
+	}
+	private var totalInquiriesToEvaluate: Int = 0
+	private var inquiriesEvaluated: Int = 0
 
 	public weak var delegate: InquiryEvaluatorDelegate?
 
@@ -20,19 +27,32 @@ public class BruteForceInquiryEvaluator: InquiryEvaluator {
 		delegate?.evaluator(self, didEncounterError: .cancelled)
 	}
 
+	public var progress: Double? {
+		guard seed != nil else { return nil }
+		guard totalInquiriesToEvaluate > 0 else { return 0 }
+		return Double(inquiriesEvaluated) / Double(totalInquiriesToEvaluate)
+	}
+
 	public func findOptimalInquiry(in baseState: GameState, withPossibleStates possibleStates: [PossibleState]) {
 		seed = (baseState, possibleStates)
+		defer {
+			if isRunning(withState: baseState) {
+				self.inquiriesEvaluated += 1
+			}
+		}
 
 		let reporter = StepReporter(owner: self)
 		reporter.reportStep(message: "Beginning inquiry evaluation")
 
 		let inquiries = baseState.allPossibleInquiries()
+		totalInquiriesToEvaluate = inquiries.count + 1
 		reporter.reportStep(message: "Finished generating inquiries")
 
 		var highestExpectedStatesRemoved = 0
 		var bestInquiries: [Inquiry] = []
 
 		inquiries.forEach { inquiry in
+			inquiriesEvaluated += 1
 			guard isRunning(withState: baseState) else { return }
 
 			guard !baseState.playerHasBeenAsked(inquiry: inquiry) else { return }

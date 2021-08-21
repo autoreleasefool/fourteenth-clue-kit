@@ -8,11 +8,21 @@
 /// Searches for a solution to a mystery by eliminating contradictory solutions
 public class SolutionEliminationSolver: MysterySolver {
 
-	private var currentState: GameState?
+	private var currentState: GameState? {
+		didSet {
+			_progress = 0
+		}
+	}
 
 	public weak var delegate: MysterySolverDelegate?
 
 	public init() {}
+
+	private var _progress: Double = 0
+	public var progress: Double? {
+		guard currentState != nil else { return nil }
+		return _progress
+	}
 
 	public func cancel() {
 		currentState = nil
@@ -23,12 +33,18 @@ public class SolutionEliminationSolver: MysterySolver {
 		currentState = state
 
 		var solutions = state.allPossibleSolutions()
+		_progress = 0.2
 
 		removeImpossibleSolutions(in: state, &solutions)
+		_progress = 0.4
 		resolveMyAccusations(in: state, &solutions)
+		_progress = 0.6
 		resolveOpponentAccusations(in: state, &solutions)
+		_progress = 0.8
 		resolveInquisitionsInIsolation(in: state, &solutions)
+		_progress = 0.9
 		resolveInquisitionsInCombination(in: state, &solutions)
+		_progress = 1.0
 
 		guard isRunning(withState: state) else { return }
 		delegate?.solver(self, didReturnSolutions: solutions.sorted().reversed())

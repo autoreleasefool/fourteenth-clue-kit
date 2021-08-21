@@ -18,6 +18,9 @@ public protocol MysterySolverDelegate: AnyObject {
 public protocol MysterySolver {
 	var delegate: MysterySolverDelegate? { get set }
 
+	/// Value from 0 to 1 on how close to a solution the solver is for the last `state` passed. Nil if there's no work in progress
+	var progress: Double? { get }
+
 	/// Start solving a given state.
 	/// - Parameter state: the base game state
 	func solve(state: GameState)

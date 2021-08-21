@@ -16,7 +16,11 @@ public class PossibleStateEliminationSolver: MysterySolver {
 
 	public weak var delegate: MysterySolverDelegate?
 
-	private var currentState: GameState?
+	private var currentState: GameState? {
+		didSet {
+			_progress = 0
+		}
+	}
 	private var cachedStates: [PossibleState]?
 
 	public init() {}
@@ -24,6 +28,12 @@ public class PossibleStateEliminationSolver: MysterySolver {
 	public func cancel() {
 		currentState = nil
 		delegate?.solver(self, didEncounterError: .cancelled)
+	}
+
+	private var _progress: Double = 0
+	public var progress: Double? {
+		guard currentState != nil else { return nil }
+		return _progress
 	}
 
 	public func solve(state: GameState) {
@@ -41,18 +51,23 @@ public class PossibleStateEliminationSolver: MysterySolver {
 			self?.isRunning(withState: state) == true
 		}
 		reporter.reportStep(message: "Finished generating states")
+		_progress = 0.2
 
 		resolveMyAccusations(in: state, &states)
 		reporter.reportStep(message: "Finished resolving my accusations")
+		_progress = 0.4
 
 		resolveOpponentAccusations(in: state, &states)
 		reporter.reportStep(message: "Finished resolving opponent accusations")
+		_progress = 0.6
 
 		resolveInquisitionsInIsolation(in: state, &states)
 		reporter.reportStep(message: "Finished resolving inquisitions in isolation")
+		_progress = 0.8
 
 		resolveInquisitionsInCombination(in: state, &states)
 		reporter.reportStep(message: "Finished resolving inquisitions in combination")
+		_progress = 0.9
 
 		let solutions = processStatesIntoSolutions(states)
 		guard isRunning(withState: state) else {
@@ -61,6 +76,7 @@ public class PossibleStateEliminationSolver: MysterySolver {
 		}
 
 		reporter.reportStep(message: "Finished generating \(states.count) possible states.")
+		_progress = 1.0
 		delegate?.solver(self, didReturnSolutions: solutions.sorted())
 		(delegate as? PossibleStateEliminationSolverDelegate)?.solver(self, didGeneratePossibleStates: states, for: state)
 	}
