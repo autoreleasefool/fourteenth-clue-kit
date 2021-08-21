@@ -55,7 +55,10 @@ public class PossibleStateEliminationSolver: MysterySolver {
 		reporter.reportStep(message: "Finished resolving inquisitions in combination")
 
 		let solutions = processStatesIntoSolutions(states)
-		guard isRunning(withState: state) else { return }
+		guard isRunning(withState: state) else {
+			reporter.reportStep(message: "No longer solving state '\(state.id)'")
+			return
+		}
 
 		reporter.reportStep(message: "Finished generating \(states.count) possible states.")
 		delegate?.solver(self, didReturnSolutions: solutions.sorted())
