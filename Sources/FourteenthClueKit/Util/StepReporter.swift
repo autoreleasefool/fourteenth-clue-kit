@@ -29,6 +29,7 @@ class StepReporter {
 		let nanoTime = currentTime.uptimeNanoseconds - startTime.uptimeNanoseconds
 		let timeInterval = Double(nanoTime) / 1_000_000_000
 
+		guard Configuration.isLoggingEnabled else { return }
 		print("[\(ownerName)][\(String(format: "%.2f", timeInterval))] \(steps). \(message)")
 	}
 }
