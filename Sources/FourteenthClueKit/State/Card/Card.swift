@@ -150,14 +150,20 @@ extension Card {
 		}
 
 		public static func < (lhs: Category, rhs: Category) -> Bool {
+			if lhs == rhs { return false }
 			switch (lhs, rhs) {
-			case (.person, .location), (.person, .weapon):
-				return true
-			case (.location, .weapon):
-				return true
-			case (.person, person), (.location, .person), (.location, .location),
-				(.weapon, .person), (.weapon, .location), (.weapon, .weapon):
-				return false
+			case (.person(.man), _): return true
+			case (_, .person(.man)): return false
+			case (.person(.woman), _): return true
+			case (_, .person(.woman)): return false
+			case (.location(.indoors), _): return true
+			case (_, .location(.indoors)): return false
+			case (.location(.outdoors), _): return true
+			case (_, .location(.outdoors)): return false
+			case (.weapon(.ranged), _): return true
+			case (_, .weapon(.ranged)): return false
+			case (.weapon(.melee), _): return true
+			case (_, .weapon(.melee)): return false
 			}
 		}
 
@@ -268,15 +274,25 @@ extension Card {
 			if lhs == rhs { return false }
 			switch (lhs, rhs) {
 			case (.purple, _): return true
+			case (_, .purple): return false
 			case (.pink, _): return true
+			case (_, .pink): return false
 			case (.red, _): return true
+			case (_, .red): return false
 			case (.green, _): return true
+			case (_, .green): return false
 			case (.yellow, _): return true
+			case (_, .yellow): return false
 			case (.blue, _): return true
+			case (_, .blue): return false
 			case (.orange, _): return true
+			case (_, .orange): return false
 			case (.white, _): return true
+			case (_, .white): return false
 			case (.brown, _): return true
+			case (_, .brown): return false
 			case (.gray, _): return true
+			case (_, .gray): return false
 			case (_, _): return false
 			}
 		}
