@@ -21,6 +21,8 @@ public class BruteForceInquiryEvaluator: InquiryEvaluator {
 	}
 
 	public func findOptimalInquiry(in baseState: GameState, withPossibleStates possibleStates: [PossibleState]) {
+		seed = (baseState, possibleStates)
+
 		let reporter = StepReporter(owner: self)
 		reporter.reportStep(message: "Beginning inquiry evaluation")
 
