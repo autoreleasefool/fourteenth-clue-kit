@@ -18,6 +18,7 @@ public class BruteForceInquiryEvaluator: InquiryEvaluator {
 	private let maxConcurrentTasks: Int
 
 	public init(maxConcurrentTasks: Int = 1) {
+		assert(maxConcurrentTasks >= 1)
 		self.maxConcurrentTasks = maxConcurrentTasks
 	}
 

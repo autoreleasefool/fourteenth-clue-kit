@@ -5,83 +5,86 @@
 //  Created by Joseph Roque on 2021-08-17.
 //
 
+import Foundation
+
 /// Searches for a solution to a mystery by eliminating contradictory solutions
 public class SolutionEliminationSolver: MysterySolver {
 
-	private var currentState: GameState? {
-		didSet {
-			_progress = 0
-		}
-	}
-
 	public weak var delegate: MysterySolverDelegate?
 
-	public init() {}
+	private var tasks: [UUID: State] = [:]
+	private var cancelledTasks: Set<UUID> = []
 
-	private var _progress: Double = 0
-	public var progress: Double? {
-		guard currentState != nil else { return nil }
-		return _progress
+	private let maxConcurrentTasks: Int
+
+	public init(maxConcurrentTasks: Int = 1) {
+		assert(maxConcurrentTasks >= 1)
+		self.maxConcurrentTasks = maxConcurrentTasks
 	}
 
-	public func cancel() {
-		currentState = nil
-		delegate?.solver(self, didEncounterError: .cancelled)
+	public func cancelSolving(state: GameState) {
+		cancelledTasks.insert(state.id)
+		delegate?.solver(self, didEncounterError: .cancelled, forState: state)
+		tasks[state.id] = nil
+	}
+
+	public func progressSolving(state: GameState) -> Double? {
+		tasks[state.id]?.progress
 	}
 
 	public func solve(state: GameState) {
-		currentState = state
+		let currentState = State(gameState: state)
+		tasks[currentState.gameState.id] = currentState
+		currentState.progress = 0.2
 
-		var solutions = state.allPossibleSolutions()
-		_progress = 0.2
+		removeImpossibleSolutions(in: currentState)
+		currentState.progress = 0.4
+		resolveMyAccusations(in: currentState)
+		currentState.progress = 0.6
+		resolveOpponentAccusations(in: currentState)
+		currentState.progress = 0.8
+		resolveInquisitionsInIsolation(in: currentState)
+		currentState.progress = 0.9
+		resolveInquisitionsInCombination(in: currentState)
+		currentState.progress = 1.0
 
-		removeImpossibleSolutions(in: state, &solutions)
-		_progress = 0.4
-		resolveMyAccusations(in: state, &solutions)
-		_progress = 0.6
-		resolveOpponentAccusations(in: state, &solutions)
-		_progress = 0.8
-		resolveInquisitionsInIsolation(in: state, &solutions)
-		_progress = 0.9
-		resolveInquisitionsInCombination(in: state, &solutions)
-		_progress = 1.0
-
-		guard isRunning(withState: state) else { return }
-		delegate?.solver(self, didReturnSolutions: solutions.sorted().reversed())
+		guard isSolving(state: state) else { return }
+		delegate?.solver(self, didReturnSolutions: currentState.solutions.sorted().reversed(), forState: currentState.gameState)
+		tasks[currentState.gameState.id] = nil
 	}
 
-	private func isRunning(withState state: GameState) -> Bool {
-		currentState?.id == state.id
+	private func isSolving(state: GameState) -> Bool {
+		!cancelledTasks.contains(state.id)
 	}
 
-	private func removeImpossibleSolutions(in state: GameState, _ solutions: inout [Solution]) {
-		guard isRunning(withState: state) else { return }
+	private func removeImpossibleSolutions(in state: State) {
+		guard isSolving(state: state.gameState) else { return }
 
-		let me = state.players.first!
-		let others = state.players.dropFirst()
+		let me = state.gameState.players.first!
+		let others =  state.gameState.players.dropFirst()
 
 		// Remove solutions with cards that other players have
 		let allOthersCards = others.flatMap { $0.cards }
-		solutions.removeAll { !$0.cards.isDisjoint(with: allOthersCards) }
+		state.solutions.removeAll { !$0.cards.isDisjoint(with: allOthersCards) }
 
 		// Remove solutions with cards in my private cards
-		solutions.removeAll { !$0.cards.isDisjoint(with: me.hidden.cards) }
+		state.solutions.removeAll { !$0.cards.isDisjoint(with: me.hidden.cards) }
 
 		// Remove solutions with secret informants
-		solutions.removeAll { !$0.cards.isDisjoint(with: state.secretInformants.compactMap { $0.card })}
+		state.solutions.removeAll { !$0.cards.isDisjoint(with: state.gameState.secretInformants.compactMap { $0.card })}
 
 		// Remove any solutions that do not match confirmed cards
 		me.mystery.cards.forEach { confirmedCard in
-			solutions.removeAll { !$0.cards.contains(confirmedCard) }
+			state.solutions.removeAll { !$0.cards.contains(confirmedCard) }
 		}
 	}
 
-	private func resolveMyAccusations(in state: GameState, _ solutions: inout [Solution]) {
-		guard isRunning(withState: state) else { return }
+	private func resolveMyAccusations(in state: State) {
+		guard isSolving(state: state.gameState) else { return }
 
-		let me = state.players.first!
+		let me = state.gameState.players.first!
 
-		state.actions
+		state.gameState.actions
 			.enumerated()
 			.filter { $0.element.player == me.id }
 			.compactMap { offset, action -> (Int, Accusation)? in
@@ -90,16 +93,16 @@ public class SolutionEliminationSolver: MysterySolver {
 			}
 			.forEach { offset, accusation in
 				// Remove solution if the accusation was already made (and was incorrect)
-				solutions.removeAll { $0.cards == accusation.cards }
+				state.solutions.removeAll { $0.cards == accusation.cards }
 			}
 	}
 
-	private func resolveOpponentAccusations(in state: GameState,_ solutions: inout [Solution]) {
-		guard isRunning(withState: state) else { return }
+	private func resolveOpponentAccusations(in state: State) {
+		guard isSolving(state: state.gameState) else { return }
 
-		let me = state.players.first!
+		let me = state.gameState.players.first!
 
-		state.actions
+		state.gameState.actions
 			.enumerated()
 			.filter { $0.element.player != me.id }
 			.compactMap { offset, action -> (Int, Accusation)? in
@@ -108,16 +111,16 @@ public class SolutionEliminationSolver: MysterySolver {
 			}
 			.forEach { offset, accusation in
 				// Remove solution if any cards are in the accusation (opponents cannot guess cards they can see)
-				solutions.removeAll { !$0.cards.isDisjoint(with: accusation.cards) }
+				state.solutions.removeAll { !$0.cards.isDisjoint(with: accusation.cards) }
 			}
 	}
 
-	private func resolveInquisitionsInIsolation(in state: GameState, _ solutions: inout [Solution]) {
-		guard isRunning(withState: state) else { return }
+	private func resolveInquisitionsInIsolation(in state: State) {
+		guard isSolving(state: state.gameState) else { return }
 
-		let me = state.players.first!
+		let me = state.gameState.players.first!
 
-		state.actions
+		state.gameState.actions
 			.enumerated()
 			.filter { $0.element.player != me.id }
 			.compactMap { offset, action -> (Int, Inquisition)? in
@@ -126,7 +129,7 @@ public class SolutionEliminationSolver: MysterySolver {
 			}
 			.forEach { offset, inquisition in
 				guard inquisition.count > 0 else {
-					solutions.removeAll { !$0.cards.isDisjoint(with: inquisition.cards) }
+					state.solutions.removeAll { !$0.cards.isDisjoint(with: inquisition.cards) }
 					return
 				}
 
@@ -134,8 +137,27 @@ public class SolutionEliminationSolver: MysterySolver {
 			}
 	}
 
-	private func resolveInquisitionsInCombination(in state: GameState, _ solutions: inout [Solution]) {
-		guard isRunning(withState: state) else { return }
+	private func resolveInquisitionsInCombination(in state: State) {
+		guard isSolving(state: state.gameState) else { return }
+	}
+
+}
+
+// MARK: - State
+
+extension SolutionEliminationSolver {
+
+	class State {
+		let gameState: GameState
+
+		var solutions: [Solution]
+		var progress: Double = 0
+
+		init(gameState: GameState) {
+			self.gameState = gameState
+			self.solutions = gameState.allPossibleSolutions()
+		}
+
 	}
 
 }

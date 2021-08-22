@@ -6,9 +6,10 @@
 //
 
 import Algorithms
+import Foundation
 
 public protocol PossibleStateEliminationSolverDelegate: MysterySolverDelegate {
-	func solver(_ solver: MysterySolver, didGeneratePossibleStates possibleStates: [PossibleState], for state: GameState)
+	func solver(_ solver: MysterySolver, didGeneratePossibleStates possibleStates: [PossibleState], forState state: GameState)
 }
 
 /// Searches for a solution to a mystery by eliminating contradictory states, and examining which possible states remain for probable solutions.
@@ -16,81 +17,87 @@ public class PossibleStateEliminationSolver: MysterySolver {
 
 	public weak var delegate: MysterySolverDelegate?
 
-	private var currentState: GameState? {
-		didSet {
-			_progress = 0
-		}
-	}
-	private var cachedStates: [PossibleState]?
+	private var tasks: [UUID: State] = [:]
+	private var cancelledTasks: Set<UUID> = []
+	private var lastGameState: GameState?
 
-	public init() {}
+	private let maxConcurrentTasks: Int
 
-	public func cancel() {
-		currentState = nil
-		delegate?.solver(self, didEncounterError: .cancelled)
+	public init(maxConcurrentTasks: Int = 1) {
+		assert(maxConcurrentTasks >= 1)
+		self.maxConcurrentTasks = maxConcurrentTasks
 	}
 
-	private var _progress: Double = 0
-	public var progress: Double? {
-		guard currentState != nil else { return nil }
-		return _progress
+	public func cancelSolving(state: GameState) {
+		cancelledTasks.insert(state.id)
+		delegate?.solver(self, didEncounterError: .cancelled, forState: state)
+	}
+
+	public func progressSolving(state: GameState) -> Double? {
+		tasks[state.id]?.progress
 	}
 
 	public func solve(state: GameState) {
+		let currentState = State(gameState: state, maxConcurrentTasks: maxConcurrentTasks)
+
 		let reporter = StepReporter(owner: self)
 		reporter.reportStep(message: "Beginning state elimination")
 
-		if let prevState = currentState,
-			 shouldClearStateCache(prevState: prevState, nextState: state) {
-			cachedStates = nil
+		if let lastGameState = lastGameState,
+			 let task = tasks[lastGameState.id],
+			 task.isComplete,
+			 lastGameState.isEarlierState(of: currentState.gameState) {
+			currentState.possibleStates = task.possibleStates
 		}
 
-		currentState = state
-
-		var states = cachedStates ?? state.allPossibleStates { [weak self] in
-			self?.isRunning(withState: state) == true
+		if currentState.possibleStates.isEmpty {
+			currentState.gameState.allPossibleStates(state: currentState) {
+				self.isSolving(state: currentState.gameState)
+			}
 		}
+
 		reporter.reportStep(message: "Finished generating states")
-		_progress = 0.2
+		currentState.progress = 0.5
 
-		resolveMyAccusations(in: state, &states)
+		resolveMyAccusations(in: currentState)
 		reporter.reportStep(message: "Finished resolving my accusations")
-		_progress = 0.4
+		currentState.progress = 0.6
 
-		resolveOpponentAccusations(in: state, &states)
+		resolveOpponentAccusations(in: currentState)
 		reporter.reportStep(message: "Finished resolving opponent accusations")
-		_progress = 0.6
+		currentState.progress = 0.7
 
-		resolveInquisitionsInIsolation(in: state, &states)
+		resolveInquisitionsInIsolation(in: currentState)
 		reporter.reportStep(message: "Finished resolving inquisitions in isolation")
-		_progress = 0.8
+		currentState.progress = 0.8
 
-		resolveInquisitionsInCombination(in: state, &states)
+		resolveInquisitionsInCombination(in: currentState)
 		reporter.reportStep(message: "Finished resolving inquisitions in combination")
-		_progress = 0.9
+		currentState.progress = 0.9
 
-		let solutions = processStatesIntoSolutions(states)
-		guard isRunning(withState: state) else {
-			reporter.reportStep(message: "No longer solving state '\(state.id)'")
+		let solutions = processStatesIntoSolutions(currentState.possibleStates)
+		guard isSolving(state: currentState.gameState) else {
+			reporter.reportStep(message: "No longer solving state '\(currentState.gameState.id)'")
 			return
 		}
 
-		reporter.reportStep(message: "Finished generating \(states.count) possible states.")
-		_progress = 1.0
-		delegate?.solver(self, didReturnSolutions: solutions.sorted())
-		(delegate as? PossibleStateEliminationSolverDelegate)?.solver(self, didGeneratePossibleStates: states, for: state)
+		reporter.reportStep(message: "Finished generating \(currentState.possibleStates.count) possible states.")
+		currentState.progress = 1.0
+		delegate?.solver(self, didReturnSolutions: solutions.sorted(), forState: currentState.gameState)
+		(delegate as? PossibleStateEliminationSolverDelegate)?.solver(self, didGeneratePossibleStates: currentState.possibleStates, forState: currentState.gameState)
+		currentState.isComplete = true
 	}
 
-	private func isRunning(withState state: GameState) -> Bool {
-		currentState?.id == state.id
+	private func isSolving(state: GameState) -> Bool {
+		!cancelledTasks.contains(state.id)
 	}
 
-	private func resolveMyAccusations(in state: GameState, _ possibleStates: inout [PossibleState]) {
-		guard isRunning(withState: state) else { return }
+	private func resolveMyAccusations(in state: State) {
+		guard isSolving(state: state.gameState) else { return }
 
-		let me = state.players.first!
+		let me = state.gameState.players.first!
 
-		state.actions
+		state.gameState.actions
 			.enumerated()
 			// Filter out clues from opponents
 			.filter { $0.element.player == me.id }
@@ -101,16 +108,16 @@ public class PossibleStateEliminationSolver: MysterySolver {
 			}
 			.forEach { offset, accusation in
 				// Remove state if the solution is identical to any accusation already made
-				possibleStates.removeAll { $0.solution.cards == accusation.cards }
+				state.possibleStates.removeAll { $0.solution.cards == accusation.cards }
 			}
 	}
 
-	private func resolveOpponentAccusations(in state: GameState, _ possibleStates: inout [PossibleState]) {
-		guard isRunning(withState: state) else { return }
+	private func resolveOpponentAccusations(in state: State) {
+		guard isSolving(state: state.gameState) else { return }
 
-		let me = state.players.first!
+		let me = state.gameState.players.first!
 
-		state.actions
+		state.gameState.actions
 			.enumerated()
 			// Filter out clues from me
 			.filter { $0.element.player != me.id }
@@ -120,15 +127,15 @@ public class PossibleStateEliminationSolver: MysterySolver {
 				return (offset, accusation)
 			}
 			.forEach { offset, accusation in
-				guard isRunning(withState: state) else { return }
+				guard isSolving(state: state.gameState) else { return }
 
 				// Remove state if any cards in the accusation appear in the solution (opponents cannot guess cards they can see)
-				possibleStates.removeAll { !$0.solution.cards.isDisjoint(with: accusation.cards) }
+				state.possibleStates.removeAll { !$0.solution.cards.isDisjoint(with: accusation.cards) }
 			}
 	}
 
-	private func resolveInquisitionsInCombination(in state: GameState, _ possibleStates: inout [PossibleState]) {
-		guard isRunning(withState: state) else { return }
+	private func resolveInquisitionsInCombination(in state: State) {
+		guard isSolving(state: state.gameState) else { return }
 	}
 
 	private func processStatesIntoSolutions(_ states: [PossibleState]) -> [Solution] {
@@ -144,22 +151,18 @@ public class PossibleStateEliminationSolver: MysterySolver {
 		}
 	}
 
-	private func shouldClearStateCache(prevState: GameState, nextState: GameState) -> Bool {
-		!prevState.isEarlierState(of: nextState)
-	}
-
 }
 
 // MARK: - Isolation rules
 
 extension PossibleStateEliminationSolver {
 
-	private func resolveInquisitionsInIsolation(in state: GameState, _ possibleStates: inout [PossibleState]) {
-		guard isRunning(withState: state) else { return }
+	private func resolveInquisitionsInIsolation(in state: State) {
+		guard isSolving(state: state.gameState) else { return }
 
-		let me = state.players.first!
+		let me = state.gameState.players.first!
 
-		state.actions
+		state.gameState.actions
 			.enumerated()
 			// Filter out clues from me
 			.filter { $0.element.player != me.id }
@@ -169,26 +172,22 @@ extension PossibleStateEliminationSolver {
 				return (offset, inquisition)
 			}
 			.forEach { offset, inquisition in
-				guard isRunning(withState: state) else { return }
+				guard isSolving(state: state.gameState) else { return }
 
-				applyRuleIfPlayerSeesNoneOfCategory(state, inquisition, &possibleStates)
-				applyRuleIfPlayerSeesSomeOfCategory(state, inquisition, &possibleStates)
-				applyRuleIfPlayerSeesAllOfCategory(state, inquisition, &possibleStates)
-				applyRuleIfPlayerAsksAboutCategory(state, inquisition, &possibleStates)
+				applyRuleIfPlayerSeesNoneOfCategory(state, inquisition)
+				applyRuleIfPlayerSeesSomeOfCategory(state, inquisition)
+				applyRuleIfPlayerSeesAllOfCategory(state, inquisition)
+				applyRuleIfPlayerAsksAboutCategory(state, inquisition)
 			}
 	}
 
-	private func applyRuleIfPlayerSeesNoneOfCategory(
-		_ state: GameState,
-		_ inquisition: Inquisition,
-		_ possibleStates: inout [PossibleState]
-	) {
+	private func applyRuleIfPlayerSeesNoneOfCategory(_ state: State, _ inquisition: Inquisition) {
 		guard inquisition.count == 0 else { return }
 
-		let categoryCards = inquisition.cards.intersection(state.cards)
+		let categoryCards = inquisition.cards.intersection(state.gameState.cards)
 
 		// Remove states where any other player has said category in their mystery (would be visible to answering player)
-		possibleStates.removeAll {
+		state.possibleStates.removeAll {
 			$0.players
 				.filter { $0.id != inquisition.answeringPlayer }
 				.contains { !$0.mystery.cards.isDisjoint(with: categoryCards) }
@@ -196,70 +195,58 @@ extension PossibleStateEliminationSolver {
 		}
 
 		// Remove states where answering player has said category in their hidden (would be visible to them)
-		possibleStates.removeAll {
+		state.possibleStates.removeAll {
 			$0.players
 				.filter { $0.id == inquisition.answeringPlayer }
 				.contains { !$0.hidden.cards.isDisjoint(with: categoryCards) }
 		}
 	}
 
-	private func applyRuleIfPlayerSeesSomeOfCategory(
-		_ state: GameState,
-		_ inquisition: Inquisition,
-		_ possibleStates: inout [PossibleState]
-	) {
-		let categoryCards = inquisition.cards.intersection(state.cards)
-		let stateCardsMatchingCategory = state.cards.matching(filter: inquisition.filter)
+	private func applyRuleIfPlayerSeesSomeOfCategory(_ state: State, _ inquisition: Inquisition) {
+		let categoryCards = inquisition.cards.intersection(state.gameState.cards)
+		let stateCardsMatchingCategory = state.gameState.cards.matching(filter: inquisition.filter)
 
 		guard inquisition.count > 0 && inquisition.count < stateCardsMatchingCategory.count else { return }
 
 		// Remove states where cards answering player can see does not equal their stated answer
-		possibleStates.removeAll { possibleState in
+		state.possibleStates.removeAll { possibleState in
 			possibleState.players
 				.filter { $0.id == inquisition.answeringPlayer }
 				.contains { possibleState.cardsVisible(toPlayer: $0.id).intersection(categoryCards).count != inquisition.count }
 		}
 	}
 
-	private func applyRuleIfPlayerSeesAllOfCategory(
-		_ state: GameState,
-		_ inquisition: Inquisition,
-		_ possibleStates: inout [PossibleState]
-	) {
-		let categoryCards = inquisition.cards.intersection(state.cards)
-		let stateCardsMatchingCategory = state.cards.matching(filter: inquisition.filter)
+	private func applyRuleIfPlayerSeesAllOfCategory(_ state: State, _ inquisition: Inquisition) {
+		let categoryCards = inquisition.cards.intersection(state.gameState.cards)
+		let stateCardsMatchingCategory = state.gameState.cards.matching(filter: inquisition.filter)
 
 		guard inquisition.count == stateCardsMatchingCategory.count else { return }
 
 		// Remove states where any other player has said category in their hidden (would not be visible to answering player)
-		possibleStates.removeAll {
+		state.possibleStates.removeAll {
 			$0.players
 				.filter { $0.id != inquisition.answeringPlayer }
 				.contains { !$0.hidden.cards.isDisjoint(with: categoryCards) }
 		}
 
 		// Remove states where answering player has said category in their mystery (would not be visible to them)
-		possibleStates.removeAll {
+		state.possibleStates.removeAll {
 			$0.players
 				.filter { $0.id == inquisition.answeringPlayer }
 				.contains { !$0.mystery.cards.isDisjoint(with: categoryCards) }
 		}
 
 		// Remove states where secret informants contain category (would not be visible to answering player)
-		possibleStates.removeAll {
+		state.possibleStates.removeAll {
 			!$0.informants.isDisjoint(with: categoryCards)
 		}
 	}
 
-	private func applyRuleIfPlayerAsksAboutCategory(
-		_ state: GameState,
-		_ inquisition: Inquisition,
-		_ possibleStates: inout [PossibleState]
-	) {
-		let categoryCards = inquisition.cards.intersection(state.cards)
+	private func applyRuleIfPlayerAsksAboutCategory(_ state: State, _ inquisition: Inquisition) {
+		let categoryCards = inquisition.cards.intersection(state.gameState.cards)
 
 		// Remove states where player can see all of the cards in the category
-		possibleStates.removeAll { possibleState in
+		state.possibleStates.removeAll { possibleState in
 			possibleState.players
 				.filter { $0.id == inquisition.askingPlayer }
 				.contains { categoryCards.isSubset(of: possibleState.cardsVisible(toPlayer: $0.id)) }
@@ -268,53 +255,90 @@ extension PossibleStateEliminationSolver {
 
 }
 
+// MARK: - State
+
+extension PossibleStateEliminationSolver {
+
+	class State {
+		let gameState: GameState
+		let maxConcurrentTasks: Int
+
+		var isComplete: Bool = false
+		var progress: Double = 0
+
+		var possibleStates: [PossibleState] = []
+
+		init(gameState: GameState, maxConcurrentTasks: Int) {
+			self.gameState = gameState
+			self.maxConcurrentTasks = maxConcurrentTasks
+		}
+
+	}
+
+}
+
 // MARK: - GameState
 
 extension GameState {
 
-	func allPossibleStates(isRunning: () -> Bool) -> [PossibleState] {
+	func allPossibleStates(state: PossibleStateEliminationSolver.State, isRunning: @escaping () -> Bool) {
 		let me = players.first!
 		let possibleSolutions = allPossibleSolutions()
-		var possibleStates: [PossibleState] = []
 
-		for solution in possibleSolutions {
-			let mySolution = PossiblePlayer(
-				id: me.id,
-				mystery: PossibleMysterySet(solution),
-				hidden: PossibleHiddenSet(me.hidden)
-			)
+		let resultQueue = DispatchQueue(label: "ca.josephroque.FourteenthClueKit.PossibleState.Result.\(self.id)")
+		let dispatchQueue = DispatchQueue(label: "ca.josephroque.FourteenthClueKit.PossibleState.Dispatch.\(self.id)", attributes: .concurrent)
 
-			let remainingCards = initialUnknownCards.subtracting(solution.cards)
-			let cardPairs = Array(remainingCards.combinations(ofCount: 2))
-				.map { Set($0) }
+		let chunked = possibleSolutions.chunks(ofCount: state.maxConcurrentTasks)
+		let group = DispatchGroup()
 
-			GameState.generatePossibleStates(
-				withBaseState: self,
-				players: [mySolution],
-				cardPairs: cardPairs,
-				into: &possibleStates,
-				isRunning: isRunning
-			)
+		chunked.forEach { solutions in
+			group.enter()
+			dispatchQueue.async {
+				for solution in solutions {
+					let mySolution = PossiblePlayer(
+						id: me.id,
+						mystery: PossibleMysterySet(solution),
+						hidden: PossibleHiddenSet(me.hidden)
+					)
+
+					let remainingCards = initialUnknownCards.subtracting(solution.cards)
+					let cardPairs = Array(remainingCards.combinations(ofCount: 2))
+						.map { Set($0) }
+
+					let states = GameState.generatePossibleStates(
+						withBaseState: self,
+						players: [mySolution],
+						cardPairs: cardPairs,
+						isRunning: isRunning
+					)
+
+					resultQueue.sync {
+						state.possibleStates.append(contentsOf: states)
+					}
+				}
+
+				group.leave()
+			}
 		}
 
-		return isRunning() ? possibleStates : []
+		group.wait()
 	}
 
 	private static func generatePossibleStates(
 		withBaseState state: GameState,
 		players: [PossiblePlayer],
 		cardPairs: [Set<Card>],
-		into possibleStates: inout [PossibleState],
 		isRunning: () -> Bool
-	) {
-		guard isRunning() else { return }
+	) -> [PossibleState] {
+		guard isRunning() else { return [] }
 
+		var possibleStates: [PossibleState] = []
 		guard players.count < state.numberOfPlayers else {
 			possibleStates.append(PossibleState(
 				players: players,
 				informants: Set(cardPairs.flatMap { $0 })
 			))
-			return
+			return possibleStates
 		}
 
 		let nextPlayerIndex = players.count
@@ -325,14 +349,15 @@ extension GameState {
 				hidden: PossibleHiddenSet(pair)
 			)
 
-			GameState.generatePossibleStates(
+			possibleStates.append(contentsOf: GameState.generatePossibleStates(
 				withBaseState: state,
 				players: players + [nextPlayer],
 				cardPairs: cardPairs.filter { $0.isDisjoint(with: pair) },
-				into: &possibleStates,
 				isRunning: isRunning
-			)
+			))
 		}
+
+		return possibleStates
 	}
 
 }
