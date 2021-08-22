@@ -88,9 +88,9 @@ public class BruteForceInquiryEvaluator: InquiryEvaluator {
 							}
 						}
 					}
-
-					group.leave()
 				}
+
+				group.leave()
 			}
 		}
 
