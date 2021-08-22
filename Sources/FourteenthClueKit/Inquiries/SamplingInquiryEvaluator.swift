@@ -16,6 +16,15 @@ public class SamplingInquiryEvaluator: InquiryEvaluator {
 		}
 	}
 
+	public var isStreamingInquiries: Bool {
+		set {
+			baseEvaluator.isStreamingInquiries = newValue
+		}
+		get {
+			baseEvaluator.isStreamingInquiries
+		}
+	}
+
 	var sampleRate: Double
 	private var baseEvaluator: InquiryEvaluator
 

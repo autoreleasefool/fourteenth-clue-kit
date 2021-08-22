@@ -6,6 +6,7 @@
 //
 
 public enum InquiryEvaluatorError: Error {
+	case completed
 	case cancelled
 }
 
@@ -16,6 +17,9 @@ public protocol InquiryEvaluatorDelegate: AnyObject {
 
 public protocol InquiryEvaluator {
 	var delegate: InquiryEvaluatorDelegate? { get set }
+
+	/// When `true`, delegate is called constantly as best inquiries are evaluated and updated
+	var isStreamingInquiries: Bool { get set }
 
 	/// Start finding the ideal inquiry in a given state
 	/// - Parameters

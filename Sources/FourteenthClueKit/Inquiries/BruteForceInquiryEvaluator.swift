@@ -12,6 +12,8 @@ public class BruteForceInquiryEvaluator: InquiryEvaluator {
 
 	public weak var delegate: InquiryEvaluatorDelegate?
 
+	public var isStreamingInquiries: Bool = false
+
 	private let evaluator: SingleInquiryEvaluator.Type
 
 	private var tasks: [UUID: State] = [:]
@@ -74,8 +76,16 @@ public class BruteForceInquiryEvaluator: InquiryEvaluator {
 						if ranking > state.highestRanking {
 							state.highestRanking = ranking
 							state.bestInquiries = [inquiry]
+
+							if self.isStreamingInquiries {
+								self.delegate?.evaluator(self, didFindOptimalInquiries: state.bestInquiries.sorted(), forState: baseState)
+							}
 						} else if ranking == state.highestRanking {
 							state.bestInquiries.append(inquiry)
+
+							if self.isStreamingInquiries {
+								self.delegate?.evaluator(self, didFindOptimalInquiries: state.bestInquiries.sorted(), forState: baseState)
+							}
 						}
 					}
 
@@ -91,7 +101,8 @@ public class BruteForceInquiryEvaluator: InquiryEvaluator {
 		}
 
 		reporter.reportStep(message: "Finished evaluating \(state.bestInquiries.count) inquiries, with ranking of \(state.highestRanking)")
-		delegate?.evaluator(self, didFindOptimalInquiries: state.bestInquiries.sorted(), forState: baseState)
+		delegate?.evaluator(self, didFindOptimalInquiries: state.bestInquiries.sorted(), forState: state.baseState)
+		delegate?.evaluator(self, didEncounterError: .completed, forState: state.baseState)
 	}
 
 	private func isEvaluating(id: UUID) -> Bool {
