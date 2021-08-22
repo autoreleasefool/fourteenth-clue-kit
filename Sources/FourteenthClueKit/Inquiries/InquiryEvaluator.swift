@@ -28,3 +28,10 @@ public protocol InquiryEvaluator {
 	func progressEvaluating(state: GameState) -> Double?
 
 }
+
+public protocol SingleInquiryEvaluator {
+	init(state: GameState, possibleStates: [PossibleState])
+
+	/// Evaluates a single `Inquiry` and returns a ranking
+	func evaluate(inquiry: Inquiry) -> Int?
+}

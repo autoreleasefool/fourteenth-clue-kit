@@ -75,7 +75,7 @@ public class PossibleStateEliminationSolver: MysterySolver {
 		reporter.reportStep(message: "Finished resolving inquisitions in combination")
 		currentState.progress = 0.9
 
-		let solutions = processStatesIntoSolutions(currentState.possibleStates)
+		let solutions = currentState.possibleStates.toSolutions()
 		guard isSolving(state: currentState.gameState) else {
 			reporter.reportStep(message: "No longer solving state '\(currentState.gameState.id)'")
 			return
@@ -136,19 +136,6 @@ public class PossibleStateEliminationSolver: MysterySolver {
 
 	private func resolveInquisitionsInCombination(in state: State) {
 		guard isSolving(state: state.gameState) else { return }
-	}
-
-	private func processStatesIntoSolutions(_ states: [PossibleState]) -> [Solution] {
-		states.reduce(into: [Solution:Int]()) { counts, possibleState in
-			counts[possibleState.solution] = (counts[possibleState.solution] ?? 0) + 1
-		}.map { key, value in
-			Solution(
-				person: key.person,
-				location: key.location,
-				weapon: key.weapon,
-				probability: Double(value) / Double(states.count)
-			)
-		}
 	}
 
 }
@@ -358,6 +345,27 @@ extension GameState {
 		}
 
 		return possibleStates
+	}
+
+}
+
+// MARK: - Solutions
+
+extension Array where Element == PossibleState {
+
+	func toSolutions() -> [Solution] {
+		guard !self.isEmpty else { return [] }
+
+		return self.reduce(into: [Solution:Int]()) { counts, possibleState in
+			counts[possibleState.solution] = (counts[possibleState.solution] ?? 0) + 1
+		}.map { key, value in
+			Solution(
+				person: key.person,
+				location: key.location,
+				weapon: key.weapon,
+				probability: Double(value) / Double(self.count)
+			)
+		}
 	}
 
 }

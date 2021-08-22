@@ -12,14 +12,17 @@ public class BruteForceInquiryEvaluator: InquiryEvaluator {
 
 	public weak var delegate: InquiryEvaluatorDelegate?
 
+	private let evaluator: SingleInquiryEvaluator.Type
+
 	private var tasks: [UUID: State] = [:]
 	private var cancelledTasks: Set<UUID> = []
 
 	private let maxConcurrentTasks: Int
 
-	public init(maxConcurrentTasks: Int = 1) {
+	public init(evaluator: SingleInquiryEvaluator.Type, maxConcurrentTasks: Int = 1) {
 		assert(maxConcurrentTasks >= 1)
 		self.maxConcurrentTasks = maxConcurrentTasks
+		self.evaluator = evaluator
 	}
 
 	public func cancelEvaluating(state: GameState) {
@@ -48,6 +51,8 @@ public class BruteForceInquiryEvaluator: InquiryEvaluator {
 		let chunked = inquiries.chunks(ofCount: maxConcurrentTasks)
 		reporter.reportStep(message: "Finished generating inquiries")
 
+		let evaluator = self.evaluator.init(state: state.baseState, possibleStates: state.possibleStates)
+
 		let resultQueue = DispatchQueue(label: "ca.josephroque.FourteenthClueKit.BruteForce.Result.\(baseState.id)")
 		let dispatchQueue = DispatchQueue(label: "ca.josephroque.FourteenthClueKit.BruteForce.Dispatch.\(baseState.id)", attributes: .concurrent)
 
@@ -59,33 +64,17 @@ public class BruteForceInquiryEvaluator: InquiryEvaluator {
 					guard self.isEvaluating(id: baseState.id) else { return }
 					guard !baseState.playerHasBeenAsked(inquiry: inquiry) else { return }
 
-					let cardsInCategory = inquiry.filter.cards
-						.intersection(baseState.cards)
-
-					let totalStatesMatchingInquiry = (1...cardsInCategory.count).map { numberOfCardsSeen in
-						possibleStates.filter {
-							let cardsInCategoryVisibleToPlayer = $0.cardsVisible(toPlayer: inquiry.player).intersection(cardsInCategory)
-							return cardsInCategoryVisibleToPlayer.count == numberOfCardsSeen
-						}.count
-					}
-
-					let totalStatesRemoved = totalStatesMatchingInquiry.reduce(0, +)
-
-					guard totalStatesRemoved > 0 else { return }
-
-					let statesRemovedByAnswer = totalStatesMatchingInquiry.map { totalStatesRemoved - $0 }
-					let probabilityOfAnswer = totalStatesMatchingInquiry.map { Double($0) / Double(totalStatesRemoved) }
-					let expectedStatesRemoved = zip(statesRemovedByAnswer, probabilityOfAnswer)
-						.map { Double($0) * $1 }
-						.reduce(0, +)
-
-					let intExpectedStatesRemoved = Int(expectedStatesRemoved)
+					let ranking = evaluator.evaluate(inquiry: inquiry)
 
 					resultQueue.sync {
-						if intExpectedStatesRemoved > state.highestExpectedStatesRemoved {
-							state.highestExpectedStatesRemoved = intExpectedStatesRemoved
+						guard let ranking = ranking else {
+							return
+						}
+
+						if ranking > state.highestRanking {
+							state.highestRanking = ranking
 							state.bestInquiries = [inquiry]
-						} else if intExpectedStatesRemoved == state.highestExpectedStatesRemoved {
+						} else if ranking == state.highestRanking {
 							state.bestInquiries.append(inquiry)
 						}
 					}
@@ -101,7 +90,7 @@ public class BruteForceInquiryEvaluator: InquiryEvaluator {
 			return
 		}
 
-		reporter.reportStep(message: "Finished evaluating \(state.bestInquiries.count) inquiries, with expected value of \(state.highestExpectedStatesRemoved)")
+		reporter.reportStep(message: "Finished evaluating \(state.bestInquiries.count) inquiries, with ranking of \(state.highestRanking)")
 		delegate?.evaluator(self, didFindOptimalInquiries: state.bestInquiries.sorted(), forState: baseState)
 	}
 
@@ -118,7 +107,7 @@ extension BruteForceInquiryEvaluator {
 		let possibleStates: [PossibleState]
 
 		var bestInquiries: [Inquiry] = []
-		var highestExpectedStatesRemoved = 0
+		var highestRanking = 0
 
 		var totalInquiriesToEvaluate: Int = 0
 		var inquiriesEvaluated = 0
