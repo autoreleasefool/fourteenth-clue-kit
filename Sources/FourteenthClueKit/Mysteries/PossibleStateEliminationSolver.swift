@@ -6,6 +6,7 @@
 //
 
 import Algorithms
+import Foundation
 
 public protocol PossibleStateEliminationSolverDelegate: MysterySolverDelegate {
 	func solver(_ solver: MysterySolver, didGeneratePossibleStates possibleStates: [PossibleState], for state: GameState)
@@ -23,17 +24,34 @@ public class PossibleStateEliminationSolver: MysterySolver {
 	}
 	private var cachedStates: [PossibleState]?
 
-	public init() {}
+	private let mainQueueID = UUID()
+	private let mainQueueIDKey = DispatchSpecificKey<UUID>()
 
-	public func cancel() {
-		currentState = nil
-		delegate?.solver(self, didEncounterError: .cancelled)
-	}
+	private var mainQueue = DispatchQueue(label: "ca.josephroque.FourteenthClueKit.PossibleState")
+	private var maxConcurrentThreads: Int
+	private var queues: [DispatchQueue]
 
 	private var _progress: Double = 0
 	public var progress: Double? {
 		guard currentState != nil else { return nil }
 		return _progress
+	}
+
+	public init(maxConcurrentThreads: Int = 1) {
+		assert(maxConcurrentThreads >= 1)
+		self.mainQueue.setSpecific(key: mainQueueIDKey, value: mainQueueID)
+		self.maxConcurrentThreads = maxConcurrentThreads
+		self.queues = (0..<maxConcurrentThreads).map {
+			DispatchQueue(label: "ca.josephroque.FourteenthClueKit.PossibleState.Queue-\($0)")
+		}
+	}
+
+	public func cancel() {
+		mainQueue.async {
+			self.currentState = nil
+			self.cachedStates = nil
+			self.delegate?.solver(self, didEncounterError: .cancelled)
+		}
 	}
 
 	public func solve(state: GameState) {
@@ -42,47 +60,73 @@ public class PossibleStateEliminationSolver: MysterySolver {
 
 		if let prevState = currentState,
 			 shouldClearStateCache(prevState: prevState, nextState: state) {
-			cachedStates = nil
+			mainQueue.sync {
+				self.cachedStates = nil
+			}
 		}
 
-		currentState = state
-
-		var states = cachedStates ?? state.allPossibleStates { [weak self] in
-			self?.isRunning(withState: state) == true
+		var cachedStates: [PossibleState]?
+		mainQueue.sync {
+			self.currentState = state
+			cachedStates = self.cachedStates
 		}
+
+		let group = DispatchGroup()
+
+		var possibleStates: [PossibleState] = []
+		if let cachedStates = cachedStates {
+			possibleStates = cachedStates
+		} else {
+			group.enter()
+			state.allPossibleStates(onQueues: queues, mainQueue: mainQueue) { [weak self] in
+				self?.isRunning(withState: state) == true
+			} completionHandler: { states in
+				possibleStates = states
+				group.leave()
+			}
+		}
+
+		group.wait()
+
 		reporter.reportStep(message: "Finished generating states")
 		_progress = 0.2
 
-		resolveMyAccusations(in: state, &states)
+		resolveMyAccusations(in: state, &possibleStates)
 		reporter.reportStep(message: "Finished resolving my accusations")
 		_progress = 0.4
 
-		resolveOpponentAccusations(in: state, &states)
+		resolveOpponentAccusations(in: state, &possibleStates)
 		reporter.reportStep(message: "Finished resolving opponent accusations")
 		_progress = 0.6
 
-		resolveInquisitionsInIsolation(in: state, &states)
+		resolveInquisitionsInIsolation(in: state, &possibleStates)
 		reporter.reportStep(message: "Finished resolving inquisitions in isolation")
 		_progress = 0.8
 
-		resolveInquisitionsInCombination(in: state, &states)
+		resolveInquisitionsInCombination(in: state, &possibleStates)
 		reporter.reportStep(message: "Finished resolving inquisitions in combination")
 		_progress = 0.9
 
-		let solutions = processStatesIntoSolutions(states)
+		let solutions = processStatesIntoSolutions(possibleStates)
 		guard isRunning(withState: state) else {
 			reporter.reportStep(message: "No longer solving state '\(state.id)'")
 			return
 		}
 
-		reporter.reportStep(message: "Finished generating \(states.count) possible states.")
+		reporter.reportStep(message: "Finished generating \(possibleStates.count) possible states.")
 		_progress = 1.0
 		delegate?.solver(self, didReturnSolutions: solutions.sorted())
-		(delegate as? PossibleStateEliminationSolverDelegate)?.solver(self, didGeneratePossibleStates: states, for: state)
+		(delegate as? PossibleStateEliminationSolverDelegate)?.solver(self, didGeneratePossibleStates: possibleStates, for: state)
 	}
 
 	private func isRunning(withState state: GameState) -> Bool {
-		currentState?.id == state.id
+		if let id = DispatchQueue.getSpecific(key: mainQueueIDKey), id == mainQueueID {
+			return self.currentState?.id == state.id
+		} else {
+			return mainQueue.sync {
+				self.currentState?.id == state.id
+			}
+		}
 	}
 
 	private func resolveMyAccusations(in state: GameState, _ possibleStates: inout [PossibleState]) {
@@ -272,49 +316,65 @@ extension PossibleStateEliminationSolver {
 
 extension GameState {
 
-	func allPossibleStates(isRunning: () -> Bool) -> [PossibleState] {
+	func allPossibleStates(onQueues queues: [DispatchQueue], mainQueue: DispatchQueue, isRunning: @escaping () -> Bool, completionHandler: @escaping ([PossibleState]) -> Void) {
 		let me = players.first!
 		let possibleSolutions = allPossibleSolutions()
 		var possibleStates: [PossibleState] = []
 
-		for solution in possibleSolutions {
-			let mySolution = PossiblePlayer(
-				id: me.id,
-				mystery: PossibleMysterySet(solution),
-				hidden: PossibleHiddenSet(me.hidden)
-			)
+		let group = DispatchGroup()
 
-			let remainingCards = initialUnknownCards.subtracting(solution.cards)
-			let cardPairs = Array(remainingCards.combinations(ofCount: 2))
-				.map { Set($0) }
+		let chunkedSolutions = possibleSolutions.chunks(ofCount: queues.count)
+		zip(queues, chunkedSolutions).forEach { queue, solutions in
+			group.enter()
+			queue.async {
+				for solution in possibleSolutions {
+					let mySolution = PossiblePlayer(
+						id: me.id,
+						mystery: PossibleMysterySet(solution),
+						hidden: PossibleHiddenSet(me.hidden)
+					)
 
-			GameState.generatePossibleStates(
-				withBaseState: self,
-				players: [mySolution],
-				cardPairs: cardPairs,
-				into: &possibleStates,
-				isRunning: isRunning
-			)
+					let remainingCards = initialUnknownCards.subtracting(solution.cards)
+					let cardPairs = Array(remainingCards.combinations(ofCount: 2))
+						.map { Set($0) }
+
+					let possibleSolutionStates = GameState.generatePossibleStates(
+						withBaseState: self,
+						players: [mySolution],
+						cardPairs: cardPairs,
+						isRunning: isRunning
+					)
+
+					mainQueue.async {
+						possibleStates.append(contentsOf: possibleSolutionStates)
+						group.leave()
+					}
+				}
+			}
 		}
 
-		return isRunning() ? possibleStates : []
+		group.notify(queue: mainQueue) {
+			if isRunning() {
+				completionHandler(possibleStates)
+			}
+		}
 	}
 
 	private static func generatePossibleStates(
 		withBaseState state: GameState,
 		players: [PossiblePlayer],
 		cardPairs: [Set<Card>],
-		into possibleStates: inout [PossibleState],
 		isRunning: () -> Bool
-	) {
-		guard isRunning() else { return }
+	) -> [PossibleState] {
+		guard isRunning() else { return [] }
+		var possibleStates: [PossibleState] = []
 
 		guard players.count < state.numberOfPlayers else {
 			possibleStates.append(PossibleState(
 				players: players,
 				informants: Set(cardPairs.flatMap { $0 })
 			))
-			return
+			return possibleStates
 		}
 
 		let nextPlayerIndex = players.count
@@ -325,14 +385,15 @@ extension GameState {
 				hidden: PossibleHiddenSet(pair)
 			)
 
-			GameState.generatePossibleStates(
+			possibleStates.append(contentsOf: GameState.generatePossibleStates(
 				withBaseState: state,
 				players: players + [nextPlayer],
 				cardPairs: cardPairs.filter { $0.isDisjoint(with: pair) },
-				into: &possibleStates,
 				isRunning: isRunning
-			)
+			))
 		}
+
+		return possibleStates
 	}
 
 }
