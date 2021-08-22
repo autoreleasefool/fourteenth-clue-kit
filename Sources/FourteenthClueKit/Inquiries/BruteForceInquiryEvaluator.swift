@@ -6,99 +6,129 @@
 //
 
 import Algorithms
+import Foundation
 
 public class BruteForceInquiryEvaluator: InquiryEvaluator {
 
-	private var seed: (state: GameState, possibleStates: [PossibleState])? {
-		didSet {
-			totalInquiriesToEvaluate = 0
-			inquiriesEvaluated = 0
-		}
-	}
-	private var totalInquiriesToEvaluate: Int = 0
-	private var inquiriesEvaluated: Int = 0
-
 	public weak var delegate: InquiryEvaluatorDelegate?
 
-	public init() {}
+	private var tasks: [UUID: State] = [:]
+	private var cancelledTasks: Set<UUID> = []
 
-	public func cancel() {
-		seed = nil
-		delegate?.evaluator(self, didEncounterError: .cancelled)
+	private let maxConcurrentTasks: Int
+
+	public init(maxConcurrentTasks: Int = 1) {
+		self.maxConcurrentTasks = maxConcurrentTasks
 	}
 
-	public var progress: Double? {
-		guard seed != nil else { return nil }
-		guard totalInquiriesToEvaluate > 0 else { return 0 }
-		return Double(inquiriesEvaluated) / Double(totalInquiriesToEvaluate)
+	public func cancelEvaluating(state: GameState) {
+		cancelledTasks.insert(state.id)
+		delegate?.evaluator(self, didEncounterError: .cancelled, forState: state)
+	}
+
+	public func progressEvaluating(state: GameState) -> Double? {
+		guard let task = tasks[state.id] else { return nil }
+
+		let totalInquiries = task.totalInquiriesToEvaluate
+		let inquiriesEvaluated = task.inquiriesEvaluated
+
+		guard totalInquiries > 0 else { return 0 }
+		return Double(inquiriesEvaluated) / Double(totalInquiries)
 	}
 
 	public func findOptimalInquiry(in baseState: GameState, withPossibleStates possibleStates: [PossibleState]) {
-		seed = (baseState, possibleStates)
-		defer {
-			if isRunning(withState: baseState) {
-				self.inquiriesEvaluated += 1
-			}
-		}
+		let state = State(baseState: baseState, possibleStates: possibleStates)
+		tasks[baseState.id] = state
 
 		let reporter = StepReporter(owner: self)
 		reporter.reportStep(message: "Beginning inquiry evaluation")
 
 		let inquiries = baseState.allPossibleInquiries()
-		totalInquiriesToEvaluate = inquiries.count + 1
+		let chunked = inquiries.chunks(ofCount: maxConcurrentTasks)
 		reporter.reportStep(message: "Finished generating inquiries")
 
-		var highestExpectedStatesRemoved = 0
-		var bestInquiries: [Inquiry] = []
+		let resultQueue = DispatchQueue(label: "ca.josephroque.FourteenthClueKit.BruteForce.Result.\(baseState.id)")
+		let dispatchQueue = DispatchQueue(label: "ca.josephroque.FourteenthClueKit.BruteForce.Dispatch.\(baseState.id)", attributes: .concurrent)
 
-		inquiries.forEach { inquiry in
-			inquiriesEvaluated += 1
-			guard isRunning(withState: baseState) else { return }
+		let group = DispatchGroup()
+		chunked.forEach { inquiries in
+			group.enter()
+			dispatchQueue.async {
+				inquiries.forEach { inquiry in
+					guard self.isEvaluating(id: baseState.id) else { return }
+					guard !baseState.playerHasBeenAsked(inquiry: inquiry) else { return }
 
-			guard !baseState.playerHasBeenAsked(inquiry: inquiry) else { return }
+					let cardsInCategory = inquiry.filter.cards
+						.intersection(baseState.cards)
 
-			let cardsInCategory = inquiry.filter.cards
-				.intersection(baseState.cards)
+					let totalStatesMatchingInquiry = (1...cardsInCategory.count).map { numberOfCardsSeen in
+						possibleStates.filter {
+							let cardsInCategoryVisibleToPlayer = $0.cardsVisible(toPlayer: inquiry.player).intersection(cardsInCategory)
+							return cardsInCategoryVisibleToPlayer.count == numberOfCardsSeen
+						}.count
+					}
 
-			let totalStatesMatchingInquiry = (1...cardsInCategory.count).map { numberOfCardsSeen in
-				possibleStates.filter {
-					let cardsInCategoryVisibleToPlayer = $0.cardsVisible(toPlayer: inquiry.player).intersection(cardsInCategory)
-					return cardsInCategoryVisibleToPlayer.count == numberOfCardsSeen
-				}.count
-			}
+					let totalStatesRemoved = totalStatesMatchingInquiry.reduce(0, +)
 
-			let totalStatesRemoved = totalStatesMatchingInquiry.reduce(0, +)
+					guard totalStatesRemoved > 0 else { return }
 
-			guard totalStatesRemoved > 0 else { return }
+					let statesRemovedByAnswer = totalStatesMatchingInquiry.map { totalStatesRemoved - $0 }
+					let probabilityOfAnswer = totalStatesMatchingInquiry.map { Double($0) / Double(totalStatesRemoved) }
+					let expectedStatesRemoved = zip(statesRemovedByAnswer, probabilityOfAnswer)
+						.map { Double($0) * $1 }
+						.reduce(0, +)
 
-			let statesRemovedByAnswer = totalStatesMatchingInquiry.map { totalStatesRemoved - $0 }
-			let probabilityOfAnswer = totalStatesMatchingInquiry.map { Double($0) / Double(totalStatesRemoved) }
-			let expectedStatesRemoved = zip(statesRemovedByAnswer, probabilityOfAnswer)
-				.map { Double($0) * $1 }
-				.reduce(0, +)
+					let intExpectedStatesRemoved = Int(expectedStatesRemoved)
 
-			let intExpectedStatesRemoved = Int(expectedStatesRemoved)
+					resultQueue.sync {
+						if intExpectedStatesRemoved > state.highestExpectedStatesRemoved {
+							state.highestExpectedStatesRemoved = intExpectedStatesRemoved
+							state.bestInquiries = [inquiry]
+						} else if intExpectedStatesRemoved == state.highestExpectedStatesRemoved {
+							state.bestInquiries.append(inquiry)
+						}
+					}
 
-			if intExpectedStatesRemoved > highestExpectedStatesRemoved {
-				highestExpectedStatesRemoved = intExpectedStatesRemoved
-				bestInquiries = [inquiry]
-			} else if intExpectedStatesRemoved == highestExpectedStatesRemoved {
-				bestInquiries.append(inquiry)
+					group.leave()
+				}
 			}
 		}
 
-		guard isRunning(withState: baseState) else {
+		group.wait()
+		guard isEvaluating(id: baseState.id) else {
 			reporter.reportStep(message: "No longer finding optimal inquiry for state '\(baseState.id)'")
 			return
 		}
 
-		reporter.reportStep(message: "Finished evaluating \(bestInquiries.count) inquiries, with expected value of \(highestExpectedStatesRemoved)")
-		delegate?.evaluator(self, didFindOptimalInquiries: bestInquiries.sorted())
+		reporter.reportStep(message: "Finished evaluating \(state.bestInquiries.count) inquiries, with expected value of \(state.highestExpectedStatesRemoved)")
+		delegate?.evaluator(self, didFindOptimalInquiries: state.bestInquiries.sorted(), forState: baseState)
 	}
 
-	private func isRunning(withState state: GameState) -> Bool {
-		seed?.state.id == state.id
+	private func isEvaluating(id: UUID) -> Bool {
+		!cancelledTasks.contains(id)
 	}
+}
+
+extension BruteForceInquiryEvaluator {
+
+	class State {
+
+		let baseState: GameState
+		let possibleStates: [PossibleState]
+
+		var bestInquiries: [Inquiry] = []
+		var highestExpectedStatesRemoved = 0
+
+		var totalInquiriesToEvaluate: Int = 0
+		var inquiriesEvaluated = 0
+
+		init(baseState: GameState, possibleStates: [PossibleState]) {
+			self.baseState = baseState
+			self.possibleStates = possibleStates
+		}
+
+	}
+
 }
 
 // MARK: - GameState
