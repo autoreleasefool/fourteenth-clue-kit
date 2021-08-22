@@ -141,6 +141,7 @@ extension GameState {
 			players.dropFirst().map { $0.id },
 			allInquiryCategories()
 		).map(Inquiry.init)
+			.shuffled()
 	}
 
 	private func allInquiryCategories() -> [Card.Filter] {
