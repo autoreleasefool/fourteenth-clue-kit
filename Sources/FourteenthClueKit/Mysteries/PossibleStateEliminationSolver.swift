@@ -39,6 +39,7 @@ public class PossibleStateEliminationSolver: MysterySolver {
 
 	public func solve(state: GameState) {
 		let currentState = State(gameState: state, maxConcurrentTasks: maxConcurrentTasks)
+		tasks[state.id] = currentState
 
 		let reporter = StepReporter(owner: self)
 		reporter.reportStep(message: "Beginning state elimination")
@@ -83,7 +84,7 @@ public class PossibleStateEliminationSolver: MysterySolver {
 
 		reporter.reportStep(message: "Finished generating \(currentState.possibleStates.count) possible states.")
 		currentState.progress = 1.0
-		delegate?.solver(self, didReturnSolutions: solutions.sorted(), forState: currentState.gameState)
+		delegate?.solver(self, didReturnSolutions: solutions.sorted().reversed(), forState: currentState.gameState)
 		(delegate as? PossibleStateEliminationSolverDelegate)?.solver(self, didGeneratePossibleStates: currentState.possibleStates, forState: currentState.gameState)
 		currentState.isComplete = true
 	}

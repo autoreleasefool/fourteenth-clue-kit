@@ -44,6 +44,7 @@ public struct AnyAction: Action, Identifiable {
 	public var ordinal: Int { wrappedValue.ordinal }
 
 	public init(_ action: Action) {
+		assert((action as? AnyAction) == nil)
 		self.wrappedValue = action
 	}
 

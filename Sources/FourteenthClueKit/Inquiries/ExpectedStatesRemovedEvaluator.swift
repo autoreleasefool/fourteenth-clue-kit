@@ -16,6 +16,8 @@ public struct ExpectedStatesRemovedEvaluator: SingleInquiryEvaluator {
 	}
 
 	public func evaluate(inquiry: Inquiry) -> Int? {
+		guard possibleStates.count > 0 else { return nil }
+
 		let cardsInCategory = inquiry.filter.cards
 			.intersection(state.cards)
 
