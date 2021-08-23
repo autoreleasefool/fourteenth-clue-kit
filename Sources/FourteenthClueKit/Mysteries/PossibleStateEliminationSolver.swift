@@ -51,6 +51,8 @@ public class PossibleStateEliminationSolver: MysterySolver {
 			currentState.possibleStates = task.possibleStates
 		}
 
+		lastGameState = currentState.gameState
+
 		if currentState.possibleStates.isEmpty {
 			currentState.gameState.allPossibleStates(state: currentState) {
 				self.isSolving(state: currentState.gameState)
