@@ -55,7 +55,7 @@ public struct GameState {
 		let firstPlayerSeed = seedState
 			.first(where: { $0.value.count == 2 })!
 		let firstPlayerCards = firstPlayerSeed.value.compactMap { Card(rawValue: $0.name.lowercased()) }
-		let otherSeeds = seedState.filter { $0.value.count == 3 }
+		let otherSeeds = seedState.filter { $0.value.count == 3 }.sorted { $0.key < $1.key }
 
 		self.init(
 			players: [
