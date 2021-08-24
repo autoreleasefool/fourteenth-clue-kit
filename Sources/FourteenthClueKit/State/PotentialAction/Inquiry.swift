@@ -6,7 +6,7 @@
 //
 
 /// Inquiry to make
-public struct Inquiry: Equatable {
+public struct Inquiry {
 
 	/// Player who will be asked
 	public let player: String
@@ -19,6 +19,14 @@ extension Inquiry: Comparable {
 
 	public static func < (lhs: Inquiry, rhs: Inquiry) -> Bool {
 		(lhs.player, lhs.filter) < (rhs.player, rhs.filter)
+	}
+
+}
+
+extension Inquiry: CustomStringConvertible {
+
+	public var description: String {
+		"Ask \(player) about \(filter) cards"
 	}
 
 }

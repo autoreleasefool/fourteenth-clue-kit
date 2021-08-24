@@ -166,6 +166,16 @@ public struct GameState {
 			zip(self.actions, nextState.actions).allSatisfy { $0.isEqual(to: $1) }
 	}
 
+	/// `true` if the given action has already been taken in the state
+	public func actionHasBeenTaken(action: PotentialAction) -> Bool {
+		switch action {
+		case .inquiry(let inquiry):
+			return playerHasBeenAsked(inquiry: inquiry)
+		case .informing(let informing):
+			return hasBeenInformed(by: informing.informant)
+		}
+	}
+
 	/// `true` if the player in `inquiry` has already been asked the query before
 	/// - Parameter inquiry: the inquiry to check
 	public func playerHasBeenAsked(inquiry: Inquiry) -> Bool {
@@ -174,6 +184,11 @@ public struct GameState {
 			return inquisition.answeringPlayer == inquiry.player &&
 				inquisition.filter == inquiry.filter
 		}
+	}
+
+	/// `true` if an Informant with the given name `informant` has been revealed
+	public func hasBeenInformed(by informant: String) -> Bool {
+		secretInformants.contains { $0.name == informant && $0.card != nil }
 	}
 
 	/// Returns the set of cards visible to the player

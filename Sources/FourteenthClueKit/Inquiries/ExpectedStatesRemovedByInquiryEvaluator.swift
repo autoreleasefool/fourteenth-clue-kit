@@ -1,11 +1,11 @@
 //
-//  ExpectedStatesRemovedEvaluator.swift
+//  ExpectedStatesRemovedByInquiryEvaluator.swift
 //  FourteenthClueKit
 //
 //  Created by Joseph Roque on 2021-08-22.
 //
 
-public struct ExpectedStatesRemovedEvaluator: SingleInquiryEvaluator {
+public struct ExpectedStatesRemovedByInquiryEvaluator: SingleInquiryEvaluator {
 
 	private let state: GameState
 	private let possibleStates: [PossibleState]

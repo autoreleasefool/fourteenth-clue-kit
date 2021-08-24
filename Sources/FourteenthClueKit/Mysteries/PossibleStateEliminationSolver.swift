@@ -59,23 +59,23 @@ public class PossibleStateEliminationSolver: MysterySolver {
 			}
 		}
 
-		reporter.reportStep(message: "Finished generating states")
+		reporter.reportStep(message: "Finished generating states: \(currentState.possibleStates.count)")
 		currentState.progress = 0.5
 
 		resolveMyAccusations(in: currentState)
-		reporter.reportStep(message: "Finished resolving my accusations")
+		reporter.reportStep(message: "Finished resolving my accusations: \(currentState.possibleStates.count)")
 		currentState.progress = 0.6
 
 		resolveOpponentAccusations(in: currentState)
-		reporter.reportStep(message: "Finished resolving opponent accusations")
+		reporter.reportStep(message: "Finished resolving opponent accusations: \(currentState.possibleStates.count)")
 		currentState.progress = 0.7
 
 		resolveInquisitionsInIsolation(in: currentState)
-		reporter.reportStep(message: "Finished resolving inquisitions in isolation")
+		reporter.reportStep(message: "Finished resolving inquisitions in isolation: \(currentState.possibleStates.count)")
 		currentState.progress = 0.8
 
 		resolveInquisitionsInCombination(in: currentState)
-		reporter.reportStep(message: "Finished resolving inquisitions in combination")
+		reporter.reportStep(message: "Finished resolving inquisitions in combination: \(currentState.possibleStates.count)")
 		currentState.progress = 0.9
 
 		let solutions = currentState.possibleStates.toSolutions()
