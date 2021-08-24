@@ -11,8 +11,16 @@ public enum PotentialActionEvaluatorError: Error {
 }
 
 public protocol PotentialActionEvaluatorDelegate: AnyObject {
-	func evaluator(_ evaluator: PotentialActionEvaluator, didFindOptimalActions actions: [PotentialAction], forState state: GameState)
-	func evaluator(_ evaluator: PotentialActionEvaluator, didEncounterError error: PotentialActionEvaluatorError, forState state: GameState)
+	func evaluator(
+		_ evaluator: PotentialActionEvaluator,
+		didFindOptimalActions actions: [PotentialAction],
+		forState state: GameState
+	)
+	func evaluator(
+		_ evaluator: PotentialActionEvaluator,
+		didEncounterError error: PotentialActionEvaluatorError,
+		forState state: GameState
+	)
 }
 
 public protocol PotentialActionEvaluator {
@@ -28,7 +36,8 @@ public protocol PotentialActionEvaluator {
 	func findOptimalAction(in baseState: GameState, withPossibleStates possibleStates: [PossibleState])
 	/// Indicate the work being done to solve `state` should be cancelled
 	func cancelEvaluating(state: GameState)
-	/// Value from 0 to 1 on how close to an optimal action the evaluator is for `state`. Nil if there's no work in progress
+	/// Value from 0 to 1 on how close to an optimal action the evaluator is for `state`.
+	/// Nil if there's no work in progress
 	func progressEvaluating(state: GameState) -> Double?
 
 }

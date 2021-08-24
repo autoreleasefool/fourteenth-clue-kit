@@ -56,38 +56,23 @@ public class BruteForceInquiryEvaluator: InquiryEvaluator {
 		let evaluator = self.evaluator.init(state: state.baseState, possibleStates: state.possibleStates)
 
 		let resultQueue = DispatchQueue(label: "ca.josephroque.FourteenthClueKit.BruteForce.Result.\(baseState.id)")
-		let dispatchQueue = DispatchQueue(label: "ca.josephroque.FourteenthClueKit.BruteForce.Dispatch.\(baseState.id)", attributes: .concurrent)
+		let dispatchQueue = DispatchQueue(
+			label: "ca.josephroque.FourteenthClueKit.BruteForce.Dispatch.\(baseState.id)",
+			attributes: .concurrent
+		)
 
 		let group = DispatchGroup()
 		chunked.forEach { inquiries in
 			group.enter()
 			dispatchQueue.async {
 				inquiries.forEach { inquiry in
-					guard self.isEvaluating(id: baseState.id) else { return }
+					guard self.isEvaluating(stateId: baseState.id) else { return }
+
 					guard !baseState.playerHasBeenAsked(inquiry: inquiry) else { return }
 
-					let ranking = evaluator.evaluate(inquiry: inquiry)
+					guard let ranking = evaluator.evaluate(inquiry: inquiry) else { return }
 
-					resultQueue.sync {
-						guard let ranking = ranking else {
-							return
-						}
-
-						if ranking > state.highestRanking {
-							state.highestRanking = ranking
-							state.bestInquiries = [inquiry]
-
-							if self.isStreamingInquiries {
-								self.delegate?.evaluator(self, didFindOptimalInquiries: state.bestInquiries.sorted(), forState: baseState)
-							}
-						} else if ranking == state.highestRanking {
-							state.bestInquiries.append(inquiry)
-
-							if self.isStreamingInquiries {
-								self.delegate?.evaluator(self, didFindOptimalInquiries: state.bestInquiries.sorted(), forState: baseState)
-							}
-						}
-					}
+					self.updateOptimalInquiries(withNewInquiry: inquiry, ranking: ranking, state: state, onQueue: resultQueue)
 				}
 
 				group.leave()
@@ -95,18 +80,39 @@ public class BruteForceInquiryEvaluator: InquiryEvaluator {
 		}
 
 		group.wait()
-		guard isEvaluating(id: baseState.id) else {
+		guard isEvaluating(stateId: baseState.id) else {
 			reporter.reportStep(message: "No longer finding optimal inquiry for state '\(baseState.id)'")
 			return
 		}
 
-		reporter.reportStep(message: "Finished evaluating \(state.bestInquiries.count) inquiries, with ranking of \(state.highestRanking)")
+		reporter.reportStep(
+			message: "Finished evaluating \(state.bestInquiries.count) inquiries, with ranking of \(state.highestRanking)"
+		)
 		delegate?.evaluator(self, didFindOptimalInquiries: state.bestInquiries.sorted(), forState: state.baseState)
 		delegate?.evaluator(self, didEncounterError: .completed, forState: state.baseState)
 	}
 
-	private func isEvaluating(id: UUID) -> Bool {
-		!cancelledTasks.contains(id)
+	private func isEvaluating(stateId: UUID) -> Bool {
+		!cancelledTasks.contains(stateId)
+	}
+
+	private func updateOptimalInquiries(withNewInquiry inquiry: Inquiry, ranking: Int, state: State, onQueue: DispatchQueue) {
+		onQueue.sync {
+			if ranking > state.highestRanking {
+				state.highestRanking = ranking
+				state.bestInquiries = [inquiry]
+
+				if self.isStreamingInquiries {
+					self.delegate?.evaluator(self, didFindOptimalInquiries: state.bestInquiries.sorted(), forState: state.baseState)
+				}
+			} else if ranking == state.highestRanking {
+				state.bestInquiries.append(inquiry)
+
+				if self.isStreamingInquiries {
+					self.delegate?.evaluator(self, didFindOptimalInquiries: state.bestInquiries.sorted(), forState: state.baseState)
+				}
+			}
+		}
 	}
 }
 

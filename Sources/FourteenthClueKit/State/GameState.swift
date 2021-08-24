@@ -66,7 +66,7 @@ public struct GameState {
 						right: firstPlayerCards.last!
 					),
 					mystery: MysteryCardSet()
-				)
+				),
 			] + otherSeeds.map {
 				let cards = Set($0.value.compactMap { Card(rawValue: $0.name.lowercased()) })
 				return Player(
@@ -212,32 +212,41 @@ public struct GameState {
 			}
 	}
 
-	/// Returns the set of cards for a given filter.
-	/// - Parameter filter: the cards filter
+	/// Returns the set of cards in the state for a given filter.
 	public func cards(forFilter filter: Card.Filter) -> Set<Card> {
 		switch filter {
 		case .color(let color):
-			switch color {
-			case .purple: return purpleCards
-			case .pink: return pinkCards
-			case .red: return redCards
-			case .green: return greenCards
-			case .yellow: return yellowCards
-			case .blue: return blueCards
-			case .orange: return orangeCards
-			case .white: return whiteCards
-			case .brown: return brownCards
-			case .gray: return grayCards
-			}
+			return cards(forColor: color)
 		case .category(let category):
-			switch category {
-			case .person(.man): return menCards
-			case .person(.woman): return womenCards
-			case .location(.indoors): return indoorsCards
-			case .location(.outdoors): return outdoorsCards
-			case .weapon(.melee): return meleeCards
-			case .weapon(.ranged): return rangedCards
-			}
+			return cards(forCategory: category)
+		}
+	}
+
+	/// Returns the set of cards in the state for a given category.
+	public func cards(forCategory category: Card.Category) -> Set<Card> {
+		switch category {
+		case .person(.man): return menCards
+		case .person(.woman): return womenCards
+		case .location(.indoors): return indoorsCards
+		case .location(.outdoors): return outdoorsCards
+		case .weapon(.melee): return meleeCards
+		case .weapon(.ranged): return rangedCards
+		}
+	}
+
+	/// Returns the set of cards in the state for a given color.
+	public func cards(forColor color: Card.Color) -> Set<Card> {
+		switch color {
+		case .purple: return purpleCards
+		case .pink: return pinkCards
+		case .red: return redCards
+		case .green: return greenCards
+		case .yellow: return yellowCards
+		case .blue: return blueCards
+		case .orange: return orangeCards
+		case .white: return whiteCards
+		case .brown: return brownCards
+		case .gray: return grayCards
 		}
 	}
 

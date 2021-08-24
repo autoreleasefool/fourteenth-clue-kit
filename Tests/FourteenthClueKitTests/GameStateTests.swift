@@ -1,6 +1,6 @@
 //
-//  File.swift
-//  File
+//  GameStateTests.swift
+//  FourteenthClueKitTests
 //
 //  Created by Joseph Roque on 2021-08-16.
 //
@@ -14,5 +14,5 @@ final class GameStateTests: XCTestCase {
 		let state = GameState(playerCount: 3)
 		XCTAssertEqual(state.numberOfPlayers, 3)
 	}
-	
+
 }

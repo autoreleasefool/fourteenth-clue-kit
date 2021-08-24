@@ -12,7 +12,11 @@ public enum InquiryEvaluatorError: Error {
 
 public protocol InquiryEvaluatorDelegate: AnyObject {
 	func evaluator(_ evaluator: InquiryEvaluator, didFindOptimalInquiries inquiries: [Inquiry], forState state: GameState)
-	func evaluator(_ evaluator: InquiryEvaluator, didEncounterError error: InquiryEvaluatorError, forState state: GameState)
+	func evaluator(
+		_ evaluator: InquiryEvaluator,
+		didEncounterError error: InquiryEvaluatorError,
+		forState state: GameState
+	)
 }
 
 public protocol InquiryEvaluator {

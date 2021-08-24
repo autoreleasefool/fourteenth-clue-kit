@@ -5,7 +5,6 @@
 //  Created by Joseph Roque on 2021-08-16.
 //
 
-
 public enum MysterySolverError: Error {
 	case cancelled
 }

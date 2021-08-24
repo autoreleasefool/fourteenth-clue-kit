@@ -5,43 +5,53 @@
 //  Created by Joseph Roque on 2021-08-22.
 //
 
-public struct ExpectedSolutionsRemovedByInquiryEvaluator: SingleInquiryEvaluator {
+public struct ExpectedSolutions {
 
-	private let state: GameState
-	private let possibleStates: [PossibleState]
-	private let solutions: [Solution]
+	private init() {}
 
-	public init(state: GameState, possibleStates: [PossibleState]) {
-		self.state = state
-		self.possibleStates = possibleStates
-		self.solutions = possibleStates.toSolutions()
-	}
+}
 
-	public func evaluate(inquiry: Inquiry) -> Int? {
-		let cardsInCategory = inquiry.filter.cards
-			.intersection(state.cards)
+extension ExpectedSolutions {
 
-		let numberOfStatesAndSolutionsMatchingAnswer = (1...cardsInCategory.count).map { numberOfCardsSeen -> (Int, Int) in
-			let statesMatching = possibleStates.filter {
-				let cardsInCategoryVisibleToPlayer = $0.cardsVisible(toPlayer: inquiry.player).intersection(cardsInCategory)
-				return cardsInCategoryVisibleToPlayer.count == numberOfCardsSeen
-			}
+	public struct RemovedByInquiryEvaluator: SingleInquiryEvaluator {
 
-			return (statesMatching.count, statesMatching.toSolutions().count)
+		private let state: GameState
+		private let possibleStates: [PossibleState]
+		private let solutions: [Solution]
+
+		public init(state: GameState, possibleStates: [PossibleState]) {
+			self.state = state
+			self.possibleStates = possibleStates
+			self.solutions = possibleStates.toSolutions()
 		}
 
-		let numberOfStatesMatchingAnswer = numberOfStatesAndSolutionsMatchingAnswer.map { $0.0 }
-		let numberOfSolutionsMatchingAnswer = numberOfStatesAndSolutionsMatchingAnswer.map { $0.1 }
+		public func evaluate(inquiry: Inquiry) -> Int? {
+			let cardsInCategory = inquiry.filter.cards
+				.intersection(state.cards)
 
-		let numberOfSolutionsRemovedByAnswer = numberOfSolutionsMatchingAnswer.map { solutions.count - $0 }
+			let numberOfStatesAndSolutionsMatchingAnswer = (1...cardsInCategory.count).map { numberOfCardsSeen -> (Int, Int) in
+				let statesMatching = possibleStates.filter {
+					let cardsInCategoryVisibleToPlayer = $0.cardsVisible(toPlayer: inquiry.player).intersection(cardsInCategory)
+					return cardsInCategoryVisibleToPlayer.count == numberOfCardsSeen
+				}
 
-		let probabilityOfAnswer = numberOfStatesMatchingAnswer.map { Double($0) / Double(possibleStates.count) }
+				return (statesMatching.count, statesMatching.toSolutions().count)
+			}
 
-		let expectedSolutionsRemovedByInquiry = zip(numberOfSolutionsRemovedByAnswer, probabilityOfAnswer)
-			.map { Double($0) * $1 }
-			.reduce(0, +)
+			let numberOfStatesMatchingAnswer = numberOfStatesAndSolutionsMatchingAnswer.map { $0.0 }
+			let numberOfSolutionsMatchingAnswer = numberOfStatesAndSolutionsMatchingAnswer.map { $0.1 }
 
-		return Int(expectedSolutionsRemovedByInquiry)
+			let numberOfSolutionsRemovedByAnswer = numberOfSolutionsMatchingAnswer.map { solutions.count - $0 }
+
+			let probabilityOfAnswer = numberOfStatesMatchingAnswer.map { Double($0) / Double(possibleStates.count) }
+
+			let expectedSolutionsRemovedByInquiry = zip(numberOfSolutionsRemovedByAnswer, probabilityOfAnswer)
+				.map { Double($0) * $1 }
+				.reduce(0, +)
+
+			return Int(expectedSolutionsRemovedByInquiry)
+		}
+
 	}
 
 }

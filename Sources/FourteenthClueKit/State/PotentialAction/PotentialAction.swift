@@ -14,17 +14,17 @@ extension PotentialAction: Comparable {
 
 	public static func < (lhs: PotentialAction, rhs: PotentialAction) -> Bool {
 		switch (lhs, rhs) {
-		case (.inquiry(let l), .inquiry(let r)):
-			return l < r
-		case (.informing(let l), .informing(let r)):
-			return l < r
+		case (.inquiry(let left), .inquiry(let right)):
+			return left < right
+		case (.informing(let left), .informing(let right)):
+			return left < right
 		case (.inquiry, _):
 			return true
 		case (_, .inquiry):
 			return false
 		}
 	}
-	
+
 }
 
 extension PotentialAction: CustomStringConvertible {

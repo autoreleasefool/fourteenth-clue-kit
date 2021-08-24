@@ -8,20 +8,20 @@
 public class SamplingInquiryEvaluator: InquiryEvaluator {
 
 	public weak var delegate: InquiryEvaluatorDelegate? {
-		set {
-			baseEvaluator.delegate = newValue
-		}
 		get {
 			baseEvaluator.delegate
+		}
+		set {
+			baseEvaluator.delegate = newValue
 		}
 	}
 
 	public var isStreamingInquiries: Bool {
-		set {
-			baseEvaluator.isStreamingInquiries = newValue
-		}
 		get {
 			baseEvaluator.isStreamingInquiries
+		}
+		set {
+			baseEvaluator.isStreamingInquiries = newValue
 		}
 	}
 
