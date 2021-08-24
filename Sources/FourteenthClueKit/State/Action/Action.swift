@@ -8,7 +8,7 @@
 import Foundation
 
 /// An action taken in the game
-public protocol Action {
+public protocol Actionable {
 
 	/// Unique ID
 	var id: UUID { get }
@@ -19,45 +19,57 @@ public protocol Action {
 
 	/// Description of the Action in the given state
 	func description(withState state: GameState) -> String
-	/// `true` if two `Action`s are equal
-	func isEqual(to other: Action) -> Bool
 
 }
 
-extension Action where Self: Equatable {
+public enum Action: Actionable, Identifiable, Equatable {
 
-	public func isEqual(to other: Action) -> Bool {
-		guard let other = other as? Self else { return false }
-		return self == other
+	case accuse(Accusation)
+	case inquire(Inquisition)
+	case examine(Examination)
+
+	public var id: UUID {
+		switch self {
+		case .accuse(let accusation):
+			return accusation.id
+		case .inquire(let inquisition):
+			return inquisition.id
+		case .examine(let examination):
+			return examination.id
+		}
 	}
 
-}
+	public var player: String {
+		switch self {
+		case .accuse(let accusation):
+			return accusation.player
+		case .inquire(let inquisition):
+			return inquisition.player
+		case .examine(let examination):
+			return examination.player
+		}
+	}
 
-// MARK: - AnyAction
-
-public struct AnyAction: Action, Identifiable {
-
-	public let wrappedValue: Action
-
-	public var id: UUID { wrappedValue.id }
-	public var player: String { wrappedValue.player }
-	public var ordinal: Int { wrappedValue.ordinal }
-
-	public init(_ action: Action) {
-		assert((action as? AnyAction) == nil)
-		self.wrappedValue = action
+	public var ordinal: Int {
+		switch self {
+		case .accuse(let accusation):
+			return accusation.ordinal
+		case .inquire(let inquisition):
+			return inquisition.ordinal
+		case .examine(let examination):
+			return examination.ordinal
+		}
 	}
 
 	public func description(withState state: GameState) -> String {
-		wrappedValue.description(withState: state)
-	}
-
-}
-
-extension AnyAction: Equatable {
-
-	public static func == (lhs: AnyAction, rhs: AnyAction) -> Bool {
-		return lhs.wrappedValue.isEqual(to: rhs.wrappedValue)
+		switch self {
+		case .accuse(let accusation):
+			return accusation.description(withState: state)
+		case .inquire(let inquisition):
+			return inquisition.description(withState: state)
+		case .examine(let examination):
+			return examination.description(withState: state)
+		}
 	}
 
 }

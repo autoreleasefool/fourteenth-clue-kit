@@ -88,7 +88,7 @@ public class SolutionEliminationSolver: MysterySolver {
 			.enumerated()
 			.filter { $0.element.player == me.id }
 			.compactMap { offset, action -> (Int, Accusation)? in
-				guard let accusation = action.wrappedValue as? Accusation else { return nil }
+				guard case let .accuse(accusation) = action else { return nil }
 				return (offset, accusation)
 			}
 			.forEach { offset, accusation in
@@ -106,7 +106,7 @@ public class SolutionEliminationSolver: MysterySolver {
 			.enumerated()
 			.filter { $0.element.player != me.id }
 			.compactMap { offset, action -> (Int, Accusation)? in
-				guard let accusation = action.wrappedValue as? Accusation else { return nil }
+				guard case let .accuse(accusation) = action else { return nil }
 				return (offset, accusation)
 			}
 			.forEach { offset, accusation in
@@ -124,7 +124,7 @@ public class SolutionEliminationSolver: MysterySolver {
 			.enumerated()
 			.filter { $0.element.player != me.id }
 			.compactMap { offset, action -> (Int, Inquisition)? in
-				guard let inquisition = action.wrappedValue as? Inquisition else { return nil }
+				guard case let .inquire(inquisition) = action else { return nil }
 				return (offset, inquisition)
 			}
 			.forEach { offset, inquisition in

@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct Examination: Action, Equatable {
+public struct Examination: Actionable, Equatable {
 
 	public let id = UUID()
 	public let player: String

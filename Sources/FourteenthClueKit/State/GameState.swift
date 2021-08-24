@@ -19,7 +19,7 @@ public struct GameState {
 	/// Playable cards
 	public let cards: Set<Card>
 	/// Actions taken in the game
-	public let actions: [AnyAction]
+	public let actions: [Action]
 
 	public init(playerCount: Int) {
 		self.init(
@@ -85,7 +85,7 @@ public struct GameState {
 		)
 	}
 
-	private init(players: [Player], secretInformants: [SecretInformant], actions: [AnyAction], cards: Set<Card>) {
+	private init(players: [Player], secretInformants: [SecretInformant], actions: [Action], cards: Set<Card>) {
 		assert((2...6).contains(players.count))
 		self.players = players
 		self.secretInformants = secretInformants
@@ -117,15 +117,15 @@ public struct GameState {
 		return .init(players: players, secretInformants: updatedInformants, actions: actions, cards: cards)
 	}
 
-	/// Add a clue to the state's actions
+	/// Add an action taken to the state's actions
 	/// - Parameter action: the action to append
-	public func appending(action: AnyAction) -> GameState {
+	public func appending(action: Action) -> GameState {
 		.init(players: players, secretInformants: secretInformants, actions: actions + [action], cards: cards)
 	}
 
 	/// Remove an action from the state
 	/// - Parameter action: the action to remove
-	public func removing(action: AnyAction) -> GameState {
+	public func removing(action: Action) -> GameState {
 		guard let actionIndex = self.actions.firstIndex(of: action) else { return self }
 		var actions = self.actions
 		actions.remove(at: actionIndex)
@@ -163,7 +163,7 @@ public struct GameState {
 			self.secretInformants == nextState.secretInformants &&
 			self.cards == nextState.cards &&
 			self.actions.count < nextState.actions.count &&
-			zip(self.actions, nextState.actions).allSatisfy { $0.isEqual(to: $1) }
+			zip(self.actions, nextState.actions).allSatisfy { $0 == $1 }
 	}
 
 	/// `true` if the given action has already been taken in the state
@@ -180,7 +180,7 @@ public struct GameState {
 	/// - Parameter inquiry: the inquiry to check
 	public func playerHasBeenAsked(inquiry: Inquiry) -> Bool {
 		actions.contains {
-			guard let inquisition = $0.wrappedValue as? Inquisition else { return false }
+			guard case let .inquire(inquisition) = $0 else { return false }
 			return inquisition.answeringPlayer == inquiry.player &&
 				inquisition.filter == inquiry.filter
 		}
