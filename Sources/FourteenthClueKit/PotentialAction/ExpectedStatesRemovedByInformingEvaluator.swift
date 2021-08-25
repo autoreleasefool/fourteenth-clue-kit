@@ -18,7 +18,7 @@ extension ExpectedStates {
 		}
 
 		public func evaluate(informing: Informing) -> Int? {
-			guard possibleStates.count > 0 else { return nil }
+			guard possibleStates.count > 0 && state.numberOfUnknownInformants > 0 else { return nil }
 
 			let possibleCards = state.unallocatedCards
 
@@ -29,7 +29,7 @@ extension ExpectedStates {
 			let numberOfStatesRemovedByCardAsInformant = numberOfStatesWithCardAsInformant.map { possibleStates.count - $0 }
 
 			let probabilityOfCardAsInformant = numberOfStatesWithCardAsInformant
-				.map { Double($0) / Double(possibleStates.count) }
+				.map { (Double($0) / Double(possibleStates.count)) / Double(state.numberOfUnknownInformants) }
 
 			let expectedStatesRemovedByCardAsInformant = zip(
 				numberOfStatesRemovedByCardAsInformant,

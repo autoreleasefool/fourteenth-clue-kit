@@ -156,6 +156,11 @@ public struct GameState {
 		secretInformants.count
 	}
 
+	/// Number of unrevealed informants in the game
+	public var numberOfUnknownInformants: Int {
+		secretInformants.compactMap { $0.card }.count
+	}
+
 	/// `true` if this state is identical to `nextState`, expect with less actions indicated
 	/// - Parameter nextState: the state to compare to
 	public func isEarlierState(of nextState: GameState) -> Bool {
