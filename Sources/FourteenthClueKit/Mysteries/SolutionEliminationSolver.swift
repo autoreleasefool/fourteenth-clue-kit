@@ -22,47 +22,47 @@ public class SolutionEliminationSolver: MysterySolver {
 		self.maxConcurrentTasks = maxConcurrentTasks
 	}
 
-	public func cancelSolving(state: GameState) {
-		cancelledTasks.insert(state.id)
-		delegate?.solver(self, didEncounterError: .cancelled, forState: state)
-		tasks[state.id] = nil
+	public func cancelSolving(gameState: GameState) {
+		cancelledTasks.insert(gameState.id)
+		delegate?.solver(self, didEncounterError: .cancelled, forState: gameState)
+		tasks[gameState.id] = nil
 	}
 
-	public func progressSolving(state: GameState) -> Double? {
-		tasks[state.id]?.progress
+	public func progressSolving(gameState: GameState) -> Double? {
+		tasks[gameState.id]?.progress
 	}
 
-	public func solve(state: GameState) {
-		let currentState = State(gameState: state)
-		tasks[currentState.gameState.id] = currentState
-		currentState.progress = 0.2
+	public func solve(gameState: GameState) {
+		let state = State(gameState: gameState)
+		tasks[state.gameState.id] = state
+		state.progress = 0.2
 
-		removeImpossibleSolutions(in: currentState)
-		currentState.progress = 0.4
-		resolveMyAccusations(in: currentState)
-		currentState.progress = 0.6
-		resolveOpponentAccusations(in: currentState)
-		currentState.progress = 0.8
-		resolveInquisitionsInIsolation(in: currentState)
-		currentState.progress = 0.9
-		resolveInquisitionsInCombination(in: currentState)
-		currentState.progress = 1.0
+		removeImpossibleSolutions(in: state)
+		state.progress = 0.4
+		resolveMyAccusations(in: state)
+		state.progress = 0.6
+		resolveOpponentAccusations(in: state)
+		state.progress = 0.8
+		resolveInquisitionsInIsolation(in: state)
+		state.progress = 0.9
+		resolveInquisitionsInCombination(in: state)
+		state.progress = 1.0
 
-		guard isSolving(state: state) else { return }
+		guard isSolving(gameState: gameState) else { return }
 		delegate?.solver(
 			self,
-			didReturnSolutions: currentState.solutions.sorted().reversed(),
-			forState: currentState.gameState
+			didReturnSolutions: state.solutions.sorted().reversed(),
+			forState: state.gameState
 		)
-		tasks[currentState.gameState.id] = nil
+		tasks[state.gameState.id] = nil
 	}
 
-	private func isSolving(state: GameState) -> Bool {
-		!cancelledTasks.contains(state.id)
+	private func isSolving(gameState: GameState) -> Bool {
+		!cancelledTasks.contains(gameState.id)
 	}
 
 	private func removeImpossibleSolutions(in state: State) {
-		guard isSolving(state: state.gameState) else { return }
+		guard isSolving(gameState: state.gameState) else { return }
 
 		let myPlayer = state.gameState.players.first!
 		let others =  state.gameState.players.dropFirst()
@@ -84,7 +84,7 @@ public class SolutionEliminationSolver: MysterySolver {
 	}
 
 	private func resolveMyAccusations(in state: State) {
-		guard isSolving(state: state.gameState) else { return }
+		guard isSolving(gameState: state.gameState) else { return }
 
 		let myPlayer = state.gameState.players.first!
 
@@ -102,7 +102,7 @@ public class SolutionEliminationSolver: MysterySolver {
 	}
 
 	private func resolveOpponentAccusations(in state: State) {
-		guard isSolving(state: state.gameState) else { return }
+		guard isSolving(gameState: state.gameState) else { return }
 
 		let myPlayer = state.gameState.players.first!
 
@@ -120,7 +120,7 @@ public class SolutionEliminationSolver: MysterySolver {
 	}
 
 	private func resolveInquisitionsInIsolation(in state: State) {
-		guard isSolving(state: state.gameState) else { return }
+		guard isSolving(gameState: state.gameState) else { return }
 
 		let myPlayer = state.gameState.players.first!
 
@@ -142,7 +142,7 @@ public class SolutionEliminationSolver: MysterySolver {
 	}
 
 	private func resolveInquisitionsInCombination(in state: State) {
-		guard isSolving(state: state.gameState) else { return }
+		guard isSolving(gameState: state.gameState) else { return }
 	}
 
 }

@@ -18,11 +18,11 @@ public protocol MysterySolver {
 	var delegate: MysterySolverDelegate? { get set }
 
 	/// Start solving a given state.
-	/// - Parameter state: the base game state
-	func solve(state: GameState)
-	/// Indicate the work being done to solve `state` should be cancelled
-	func cancelSolving(state: GameState)
-	/// Value from 0 to 1 on how close to a solution the solver is for `state`. Nil if there's no work in progress
-	func progressSolving(state: GameState) -> Double?
+	/// - Parameter gameState: the base game state
+	func solve(gameState: GameState)
+	/// Indicate the work being done to solve `gameState` should be cancelled
+	func cancelSolving(gameState: GameState)
+	/// Value from 0 to 1 on how close to a solution the solver is for `gameState`. Nil if there's no work in progress
+	func progressSolving(gameState: GameState) -> Double?
 
 }

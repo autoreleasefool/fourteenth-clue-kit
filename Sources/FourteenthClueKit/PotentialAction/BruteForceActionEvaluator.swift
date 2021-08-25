@@ -16,7 +16,7 @@ public class BruteForceActionEvaluator: PotentialActionEvaluator {
 	private let evaluator: SingleActionEvaluator.Type
 
 	private var tasks: [UUID: State] = [:]
-	private var cancelledTasks: Set<UUID> = []
+	private var finishedResults: [UUID: Evaluation] = [:]
 
 	private let maxConcurrentTasks: Int
 
@@ -27,11 +27,15 @@ public class BruteForceActionEvaluator: PotentialActionEvaluator {
 	}
 
 	public func cancelEvaluating(state: GameState) {
-		cancelledTasks.insert(state.id)
+		tasks[state.id] = nil
 		delegate?.evaluator(self, didEncounterError: .cancelled, forState: state)
 	}
 
 	public func progressEvaluating(state: GameState) -> Double? {
+		if let evaluation = finishedResults[state.id], evaluation.didFinishEvaluation {
+			return 1
+		}
+
 		guard let task = tasks[state.id] else { return nil }
 
 		let totalActions = task.totalActionsToEvaluate
@@ -44,6 +48,12 @@ public class BruteForceActionEvaluator: PotentialActionEvaluator {
 	public func findOptimalAction(in baseState: GameState, withPossibleStates possibleStates: [PossibleState]) {
 		let state = State(baseState: baseState, possibleStates: possibleStates)
 		tasks[baseState.id] = state
+
+		defer {
+			// Clean up the task once it's finished
+			finishedResults[baseState.id] = Evaluation(state: state)
+			tasks[baseState.id] = nil
+		}
 
 		let reporter = StepReporter(owner: self)
 		reporter.reportStep(message: "Beginning action evaluation")
@@ -80,22 +90,29 @@ public class BruteForceActionEvaluator: PotentialActionEvaluator {
 
 		group.wait()
 		guard isEvaluating(stateId: baseState.id) else {
-			reporter.reportStep(message: "No longer finding optimal inquiry for state '\(baseState.id)'")
+			reporter.reportStep(message: "No longer finding optimal action for state '\(baseState.id)'")
+			state.didFinishEvaluation = false
 			return
 		}
 
 		reporter.reportStep(
 			message: "Finished evaluating \(state.bestActions.count) actions, with ranking of \(state.highestRanking)"
 		)
+		state.didFinishEvaluation = true
 		delegate?.evaluator(self, didFindOptimalActions: state.bestActions.sorted(), forState: state.baseState)
 		delegate?.evaluator(self, didEncounterError: .completed, forState: state.baseState)
 	}
 
 	private func isEvaluating(stateId: UUID) -> Bool {
-		!cancelledTasks.contains(stateId)
+		tasks[stateId] != nil
 	}
 
-	private func updateOptimalActions(withNewAction action: PotentialAction, ranking: Int, state: State, onQueue: DispatchQueue) {
+	private func updateOptimalActions(
+		withNewAction action: PotentialAction,
+		ranking: Int,
+		state: State,
+		onQueue: DispatchQueue
+	) {
 		onQueue.sync {
 			if ranking > state.highestRanking {
 				state.highestRanking = ranking
@@ -129,9 +146,29 @@ extension BruteForceActionEvaluator {
 		var totalActionsToEvaluate: Int = 0
 		var actionsEvaluated = 0
 
+		var didFinishEvaluation = false
+
 		init(baseState: GameState, possibleStates: [PossibleState]) {
 			self.baseState = baseState
 			self.possibleStates = possibleStates
+		}
+
+	}
+
+}
+
+extension BruteForceActionEvaluator {
+
+	struct Evaluation {
+
+		let bestActions: [PotentialAction]
+		let highestRanking: Int
+		let didFinishEvaluation: Bool
+
+		init(state: State) {
+			self.bestActions = state.bestActions
+			self.highestRanking = state.highestRanking
+			self.didFinishEvaluation = state.didFinishEvaluation
 		}
 
 	}
