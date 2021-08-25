@@ -7,3 +7,4 @@ trailing_comma:
 identifier_name:
   excluded:
     - id
+
