@@ -6,7 +6,7 @@
 //
 
 /// A solution to a game. Equivalent to a `MysteryCardSet`, but with no optional properties
-public struct Solution: Equatable, Comparable, Identifiable, Hashable {
+public struct Solution: Equatable, Identifiable, Hashable {
 
 	/// The person of the solution
 	public let person: Card
@@ -47,9 +47,20 @@ public struct Solution: Equatable, Comparable, Identifiable, Hashable {
 		)
 	}
 
+}
+
+extension Solution: Comparable {
+
 	public static func < (lhs: Solution, rhs: Solution) -> Bool {
 		(lhs.probability, lhs.person, lhs.location, lhs.weapon) <
 			(rhs.probability, rhs.person, rhs.location, rhs.weapon)
 	}
 
+}
+
+extension Solution: CustomStringConvertible {
+
+	public var description: String {
+		"[\(String(format: "%.2f%%", probability * 100))] \(person.name), \(location.name), \(weapon.name)"
+	}
 }
