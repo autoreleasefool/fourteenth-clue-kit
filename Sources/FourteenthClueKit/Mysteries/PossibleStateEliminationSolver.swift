@@ -229,7 +229,12 @@ extension PossibleStateEliminationSolver {
 		state.possibleStates.removeAll { possibleState in
 			possibleState.players
 				.filter { $0.id == inquisition.answeringPlayer }
-				.contains { possibleState.cardsVisible(toPlayer: $0.id).intersection(categoryCards).count != inquisition.count }
+				.contains {
+					possibleState.cardsVisible(
+						toPlayer: $0.id,
+						includingCardOnSide: inquisition.includingCardOnSide
+					).intersection(categoryCards).count != inquisition.count
+				}
 		}
 	}
 
@@ -266,7 +271,12 @@ extension PossibleStateEliminationSolver {
 		state.possibleStates.removeAll { possibleState in
 			possibleState.players
 				.filter { $0.id == inquisition.askingPlayer }
-				.contains { categoryCards.isSubset(of: possibleState.cardsVisible(toPlayer: $0.id)) }
+				.contains {
+					categoryCards.isSubset(of: possibleState.cardsVisible(
+						toPlayer: $0.id,
+						includingCardOnSide: inquisition.includingCardOnSide
+					))
+				}
 		}
 	}
 

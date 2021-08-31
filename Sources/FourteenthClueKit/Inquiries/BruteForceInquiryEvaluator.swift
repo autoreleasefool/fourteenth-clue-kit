@@ -59,7 +59,7 @@ public class BruteForceInquiryEvaluator: InquiryEvaluator {
 		let reporter = StepReporter(owner: self)
 		reporter.reportStep(message: "Beginning inquiry evaluation")
 
-		let inquiries = baseState.allPossibleInquiries()
+		let inquiries = baseState.allPossibleInquiries().shuffled()
 		let chunked = inquiries.chunks(ofCount: maxConcurrentTasks)
 		reporter.reportStep(message: "Finished generating inquiries")
 
@@ -180,11 +180,23 @@ extension BruteForceInquiryEvaluator {
 extension GameState {
 
 	func allPossibleInquiries() -> [Inquiry] {
-		product(
+		let playersAndFilters = product(
 			players.dropFirst().map { $0.id },
 			allInquiryCategories()
-		).map(Inquiry.init)
-			.shuffled()
+		)
+
+		if numberOfPlayers == 2 {
+			return product(
+				playersAndFilters,
+				Card.HiddenCardPosition.allCases
+			).map { playerAndFilter, position in
+				Inquiry(player: playerAndFilter.0, filter: playerAndFilter.1, includingCardOnSide: position)
+			}
+		} else {
+			return playersAndFilters.map {
+				Inquiry(player: $0, filter: $1, includingCardOnSide: nil)
+			}
+		}
 	}
 
 	private func allInquiryCategories() -> [Card.Filter] {
@@ -195,7 +207,7 @@ extension GameState {
 			.category(.location(.outdoors)),
 			.category(.weapon(.melee)),
 			.category(.weapon(.ranged)),
-		] + cards.map({$0.color}).uniqued().map { .color($0) }
+		] + cards.map({ $0.color }).uniqued().map { .color($0) }
 	}
 
 }

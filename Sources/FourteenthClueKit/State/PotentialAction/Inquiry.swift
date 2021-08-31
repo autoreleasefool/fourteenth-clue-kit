@@ -12,13 +12,16 @@ public struct Inquiry {
 	public let player: String
 	/// Card type that will be asked about
 	public let filter: Card.Filter
+	/// In two player games, you must specify if the player should include their left or right hidden card
+	public let includingCardOnSide: Card.HiddenCardPosition?
 
 }
 
 extension Inquiry: Comparable {
 
 	public static func < (lhs: Inquiry, rhs: Inquiry) -> Bool {
-		(lhs.player, lhs.filter) < (rhs.player, rhs.filter)
+		return (lhs.player, lhs.filter, lhs.includingCardOnSide ?? .right) <
+			(rhs.player, rhs.filter, rhs.includingCardOnSide ?? .right)
 	}
 
 }
@@ -26,7 +29,8 @@ extension Inquiry: Comparable {
 extension Inquiry: CustomStringConvertible {
 
 	public var description: String {
-		"Ask \(player) about \(filter) cards"
+		let includingCard = includingCardOnSide == nil ? "" : ", including their \(includingCardOnSide!) card"
+		return "Ask \(player) about \(filter) cards\(includingCard)"
 	}
 
 }

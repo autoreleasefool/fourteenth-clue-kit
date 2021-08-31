@@ -31,4 +31,12 @@ public struct PossibleHiddenSet {
 	public var cards: Set<Card> {
 		[left, right]
 	}
+
+	public func cardOn(side: Card.HiddenCardPosition) -> Card {
+		switch side {
+		case .left: return left
+		case .right: return right
+		}
+	}
+
 }

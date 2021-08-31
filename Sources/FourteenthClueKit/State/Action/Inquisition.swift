@@ -21,6 +21,8 @@ public struct Inquisition: Clue, Equatable {
 	public let filter: Card.Filter
 	/// Number of cards matching the filter seen by the answering player
 	public let count: Int
+	/// In two player games, you must specify if the player should include their left or right hidden card
+	public let includingCardOnSide: Card.HiddenCardPosition?
 
 	/// Cards in the accusation
 	public var cards: Set<Card> {
@@ -31,18 +33,30 @@ public struct Inquisition: Clue, Equatable {
 		answeringPlayer
 	}
 
-	public init(ordinal: Int, askingPlayer: String, answeringPlayer: String, filter: Card.Filter, count: Int) {
+	public init(
+		ordinal: Int,
+		askingPlayer: String,
+		answeringPlayer: String,
+		filter: Card.Filter,
+		includingCardOnSide: Card.HiddenCardPosition?,
+		count: Int
+	) {
 		self.ordinal = ordinal
 		self.askingPlayer = askingPlayer
 		self.answeringPlayer = answeringPlayer
 		self.filter = filter
+		self.includingCardOnSide = includingCardOnSide
 		self.count = count
 	}
 
 	public func description(withState state: GameState) -> String {
 		let askingPlayer = state.players.first(where: { $0.id == self.askingPlayer })!
 		let answeringPlayer = state.players.first(where: { $0.id == self.answeringPlayer })!
-		return "[\(ordinal)] \(askingPlayer.name) asks \(answeringPlayer.name), they see \(count) \(filter.description)"
+		let includingCard = includingCardOnSide == nil ? "" : ", including their \(includingCardOnSide!) card"
+		return """
+			[\(ordinal)] \(askingPlayer.name) asks \(answeringPlayer.name), \
+			they see \(count) \(filter.description)\(includingCard)
+			"""
 	}
 
 }

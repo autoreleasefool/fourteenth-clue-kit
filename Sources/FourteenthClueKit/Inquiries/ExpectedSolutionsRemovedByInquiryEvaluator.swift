@@ -31,7 +31,10 @@ extension ExpectedSolutions {
 
 			let numberOfStatesAndSolutionsMatchingAnswer = (1...cardsInCategory.count).map { numberOfCardsSeen -> (Int, Int) in
 				let statesMatching = possibleStates.filter {
-					let cardsInCategoryVisibleToPlayer = $0.cardsVisible(toPlayer: inquiry.player).intersection(cardsInCategory)
+					let cardsInCategoryVisibleToPlayer = $0.cardsVisible(
+						toPlayer: inquiry.player,
+						includingCardOnSide: inquiry.includingCardOnSide
+					).intersection(cardsInCategory)
 					return cardsInCategoryVisibleToPlayer.count == numberOfCardsSeen
 				}
 

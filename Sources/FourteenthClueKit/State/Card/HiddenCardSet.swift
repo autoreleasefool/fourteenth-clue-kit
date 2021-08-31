@@ -39,4 +39,11 @@ public struct HiddenCardSet: Hashable {
 		Set([left, right].compactMap { $0 })
 	}
 
+	public func cardOn(side: Card.HiddenCardPosition) -> Card? {
+		switch side {
+		case .left: return left
+		case .right: return right
+		}
+	}
+
 }

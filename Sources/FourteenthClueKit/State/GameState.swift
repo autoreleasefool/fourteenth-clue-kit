@@ -36,7 +36,8 @@ public struct GameState {
 				Player(
 					name: $0,
 					hidden: HiddenCardSet(left: nil, right: nil),
-					mystery: MysteryCardSet(person: nil, location: nil, weapon: nil)
+					mystery: MysteryCardSet(person: nil, location: nil, weapon: nil),
+					magnifyingGlasses: 1
 				)
 			},
 			secretInformants: GameState.secretInformants(forPlayerCount: playerNames.count),
@@ -65,7 +66,8 @@ public struct GameState {
 						left: firstPlayerCards.first!,
 						right: firstPlayerCards.last!
 					),
-					mystery: MysteryCardSet()
+					mystery: MysteryCardSet(),
+					magnifyingGlasses: 1
 				),
 			] + otherSeeds.map {
 				let cards = Set($0.value.compactMap { Card(rawValue: $0.name.lowercased()) })
@@ -76,7 +78,8 @@ public struct GameState {
 						person: cards.people.first!,
 						location: cards.locations.first!,
 						weapon: cards.weapons.first!
-					)
+					),
+					magnifyingGlasses: 1
 				)
 			},
 			secretInformants: GameState.secretInformants(forPlayerCount: seedState.count),
@@ -120,7 +123,12 @@ public struct GameState {
 	/// Add an action taken to the state's actions
 	/// - Parameter action: the action to append
 	public func appending(action: Action) -> GameState {
-		.init(players: players, secretInformants: secretInformants, actions: actions + [action], cards: cards)
+		return .init(
+			players: self.players.map { $0.resolvingAction(action, in: self) },
+			secretInformants: secretInformants,
+			actions: actions + [action],
+			cards: cards
+		)
 	}
 
 	/// Remove an action from the state
@@ -129,7 +137,23 @@ public struct GameState {
 		guard let actionIndex = self.actions.firstIndex(of: action) else { return self }
 		var actions = self.actions
 		actions.remove(at: actionIndex)
+
+		let defaultGlassCount = numberOfPlayers == 2 ? 0 : 1
+
+		var players = players.map {
+			Player(name: $0.name, hidden: $0.hidden, mystery: $0.mystery, magnifyingGlasses: defaultGlassCount)
+		}
+		var state = GameState(players: players, secretInformants: secretInformants, actions: [], cards: cards)
+		actions.forEach { action in
+			players = players.map { $0.resolvingAction(action, in: state) }
+			state = state.with(players: players, actions: actions)
+		}
+
 		return .init(players: players, secretInformants: secretInformants, actions: actions, cards: cards)
+	}
+
+	internal func with(players: [Player], actions: [Action]) -> GameState {
+		.init(players: players, secretInformants: secretInformants, actions: actions, cards: cards)
 	}
 
 	/// Remove a set of actions from the state
@@ -161,6 +185,18 @@ public struct GameState {
 		secretInformants.compactMap { $0.card }.count
 	}
 
+	/// `true` if there are more than 2 players, meaning magnifying glasses must be tracked
+	public var isTrackingMagnifyingGlasses: Bool {
+		numberOfPlayers > 2
+	}
+
+	/// `true` if there's enough information about the game to begin solving
+	/// (opponent mysteries + player's hidden cards are defined)
+	public var isSolveable: Bool {
+		players.first!.isSolveable(asFirstPlayer: true) &&
+			players.dropFirst().allSatisfy { $0.isSolveable(asFirstPlayer: false) }
+	}
+
 	/// `true` if this state is identical to `nextState`, expect with less actions indicated
 	/// - Parameter nextState: the state to compare to
 	public func isEarlierState(of nextState: GameState) -> Bool {
@@ -187,7 +223,8 @@ public struct GameState {
 		actions.contains {
 			guard case let .inquire(inquisition) = $0 else { return false }
 			return inquisition.answeringPlayer == inquiry.player &&
-				inquisition.filter == inquiry.filter
+				inquisition.filter == inquiry.filter &&
+				inquisition.includingCardOnSide == inquiry.includingCardOnSide
 		}
 	}
 

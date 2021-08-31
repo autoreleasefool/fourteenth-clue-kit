@@ -21,13 +21,17 @@ public struct PossibleState {
 	}
 
 	/// Returns the set of cards visible to a given player
-	public func cardsVisible(toPlayer targetPlayer: String) -> Set<Card> {
+	public func cardsVisible(toPlayer targetPlayer: String, includingCardOnSide: Card.HiddenCardPosition?) -> Set<Card> {
 		players.reduce(into: Set<Card>()) { cards, player in
-			cards.formUnion(
-				targetPlayer == player.id
-					? player.hidden.cards
-					: player.mystery.cards
-			)
+			guard targetPlayer == player.id, let includingCardOnSide = includingCardOnSide else {
+				return cards.formUnion(
+					targetPlayer == player.id
+					 ? player.hidden.cards
+					 : player.mystery.cards
+			 )
+			}
+
+			return cards.formUnion([player.hidden.cardOn(side: includingCardOnSide)])
 		}
 	}
 }
