@@ -4,8 +4,6 @@ A Swift library to help you build a solver for the board game [13 Clues](https:/
 
 ## Usage
 
-
-
 ## Installation
 
 ### Requirements
@@ -38,10 +36,8 @@ targets: [
 
 ## Contributing
 
-Write your changes and make sure you test them! This engine boasts nearly 100% code coverage and expects precise conformance to the rules of the game.
-swift test
-Install SwiftLint for styling conformance:
-Run swiftlint from the root of the repository.
-There should be no errors or violations. If there are, please fix them before opening a PR.
-Open a PR with your changes 👍
-CI will run your changes and ensure they build and pass all tests on Linux and macOS
+1. Write your changes. If possible, test them with `swift test`.
+2. Install SwiftLint for styling conformance:
+   - Run `swiftlint` from the root of the repository.
+   - There should be no errors or violations. If there are, please fix them before opening a PR.
+3. Open a PR with your changes 👍
